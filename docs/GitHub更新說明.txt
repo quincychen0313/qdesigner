@@ -1,0 +1,15 @@
+qDesinger — GitHub 網頁字型修正版（2026-10-15）
+
+修正：語言下拉選單內的中文、日文、韓文顯示方框，以及切換後的介面缺字。
+字型已內嵌在新版引擎，不需要自行安裝字型。
+
+1. 解壓縮 qDesinger-GitHub-Web-Font-Fix.zip。
+2. 在 GitHub 開啟 quincychen0313/qdesigner 的 docs 資料夾。
+3. 使用 Add file → Upload files，將本包解壓縮後的全部內容上傳到 docs（含 licenses 資料夾），覆蓋同名檔案。
+4. 按 Commit changes，等 Pages 部署完成後重新載入網站。
+5. 開啟 Edit → Preferences → Interface → Language 檢查語言名稱，選繁體中文後套用。
+
+注意：這次必須上傳新版 .js 與全部 .bin 檔，不能只換 index.html。
+不需刪除 GitHub 上的舊引擎檔；新的首頁會引用新檔名。
+不需上傳 native 或安裝 Rust。每個檔案小於 8 MiB，檔案總數小於 100。
+本包提供完整網頁檔案；完整 Rust 原始碼另存於 qDesinger-GitHub.zip。

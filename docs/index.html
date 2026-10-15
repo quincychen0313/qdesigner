@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>qDesinger</title>
-  <meta name="qdesinger-build" content="20261015-segmented-startup">
+  <meta name="qdesinger-build" content="20261015-cjk-ui-font-fix">
   <meta name="description" content="qDesinger 網頁影像編輯器：圖層、遮色片、筆刷、文字與 PSD 編輯。以 PhotoCraft 0.7.0 為基礎，內建可收合的 Actions 分類側欄。">
   
 <script type="module">
@@ -15,7 +15,7 @@ try {
   if (location.protocol === 'file:') throw new Error('請使用 HTTPS 網址開啟網站，勿直接雙擊 HTML。');
   progress('正在載入啟動元件…');
   const [bindings, actions, pdf, loader] = await Promise.all([
-    import('./photocraft-web-f4903679dcdb0f71.js'),
+    import('./photocraft-web-25b3917c1d162080.js'),
     import('./builtin-actions.mjs'),
     import('./action-pdf.mjs'),
     import('./engine-loader-c363c0712d1e.mjs')
@@ -33,7 +33,7 @@ try {
   pdf.installPDFExport(notify);
   try { actions.revealActionsOnce(); actions.dockActionsColumnOnce(); }
   catch (error) { console.warn('Actions panel preference:', error); }
-  const bytes = await loader.loadEngine({"parts": [{"file": "photocraft-web-f4903679dcdb0f71.part1.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part2.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part3.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part4.bin", "size": 1884152}], "size": 27049976, "sha256": "17dd68d80df8112a7b4448dc0ab1a6a7c4be864f2d802bebb57abeb02e147f52"}, progress);
+  const bytes = await loader.loadEngine({"parts": [{"file": "photocraft-web-25b3917c1d162080.part1.bin", "size": 8388608}, {"file": "photocraft-web-25b3917c1d162080.part2.bin", "size": 8388608}, {"file": "photocraft-web-25b3917c1d162080.part3.bin", "size": 8388608}, {"file": "photocraft-web-25b3917c1d162080.part4.bin", "size": 2575543}], "size": 27741367, "sha256": "25b3917c1d162080ddf7c685ee82f5b725c1332bfe40f794244b6ac1d4857253"}, progress);
   progress('正在啟動 qDesinger…');
   const wasm = await bindings.default({module_or_path: bytes});
   window.wasmBindings = bindings;
@@ -67,7 +67,7 @@ try {
     #actions_notice[data-error="true"] {border-color:#dc9773;}
     #actions_notice button {position:absolute;right:8px;top:8px;background:transparent;border:0;color:#eee;cursor:pointer;font-size:20px;}
   </style>
-<link rel="modulepreload" href="./photocraft-web-f4903679dcdb0f71.js" crossorigin="anonymous" integrity="sha384-/YwudaFO2tYOqJyxrwzfqwIg+FySv1EKjEqVBGnnXdjDmQzqmAMx91cOmXE8a+pr"></head>
+<link rel="modulepreload" href="./photocraft-web-25b3917c1d162080.js" crossorigin="anonymous" integrity="sha384-WTc4HBSBDW5adcOwlJF0ZKQjc2scEGluDYuSg223/qhGT3wmIfhHYFuWWJH2/8zC"></head>
 <body>
   <canvas id="photocraft_canvas"></canvas>
   <aside id="actions_notice" role="status" aria-live="polite" hidden><span></span><button type="button" aria-label="關閉提示">×</button></aside>
