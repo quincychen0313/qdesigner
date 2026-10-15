@@ -7,7 +7,7 @@
   <meta name="description" content="qDesinger 網頁影像編輯器：圖層、遮色片、筆刷、文字與 PSD 編輯。以 PhotoCraft 0.7.0 為基礎，內建可收合的 Actions 分類側欄。">
   
 <script type="module">
-import init, * as bindings from './photocraft-web-e8e18e3781640c06.js';
+import init, * as bindings from './photocraft-web-f4903679dcdb0f71.js';
 import {revealActionsOnce, dockActionsColumnOnce} from './builtin-actions.mjs';
 import {installPDFExport} from './action-pdf.mjs';
 let noticeTimer;
@@ -27,7 +27,7 @@ try {
 } catch (error) {
   console.warn('Actions panel preference:', error);
 }
-const wasm = await init({ module_or_path: './photocraft-web-e8e18e3781640c06_bg.wasm' });
+const wasm = await init({ module_or_path: './photocraft-web-f4903679dcdb0f71_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -52,7 +52,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
     #actions_notice[data-error="true"] {border-color:#dc9773;}
     #actions_notice button {position:absolute;right:8px;top:8px;background:transparent;border:0;color:#eee;cursor:pointer;font-size:20px;}
   </style>
-<link rel="modulepreload" href="./photocraft-web-e8e18e3781640c06.js" crossorigin="anonymous" integrity="sha384-gKhMVgJ5bx/rs/fxdEp8x1zXWG6a8pg/uaadMRPm8TRN/M1U8wcP8B+qEV51o8Ht"><link rel="preload" href="./photocraft-web-e8e18e3781640c06_bg.wasm" crossorigin="anonymous" integrity="sha384-q6QikCWUddPMrh1+jFJHt+8tz5S/bA5tdqmPW2Wx8E6K7OvXZOWON8Ls/v7WmHZL" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./photocraft-web-f4903679dcdb0f71.js" crossorigin="anonymous" integrity="sha384-/YwudaFO2tYOqJyxrwzfqwIg+FySv1EKjEqVBGnnXdjDmQzqmAMx91cOmXE8a+pr"><link rel="preload" href="./photocraft-web-f4903679dcdb0f71_bg.wasm" crossorigin="anonymous" integrity="sha384-ckdTMEDB/QyWGDq7vLMdAADR+k40EZ8Zolo50BuUP5xlGuxc8cnKuNnb1xs70Zds" as="fetch" type="application/wasm"></head>
 <body>
   <canvas id="photocraft_canvas"></canvas>
   <aside id="actions_notice" role="status" aria-live="polite" hidden><span></span><button type="button" aria-label="關閉提示">×</button></aside>
