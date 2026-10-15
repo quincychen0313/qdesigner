@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "name": "Creative Effects · Enhance clarity",
+      "steps": [
+        [
+          "layer.duplicate",
+          {}
+        ],
+        [
+          "layer.setProps",
+          {
+            "name": "Enhance clarity"
+          }
+        ],
+        [
+          "filter.cameraRaw",
+          {
+            "clarity": 25
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Creative Effects · Sharpen",
+      "steps": [
+        [
+          "layer.duplicate",
+          {}
+        ],
+        [
+          "layer.setProps",
+          {
+            "name": "Sharpen"
+          }
+        ],
+        [
+          "filter.sharpen.unsharpMask",
+          {
+            "amount": 80,
+            "radius": 1.2,
+            "threshold": 2
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Creative Effects · Add vignette",
+      "steps": [
+        [
+          "layer.duplicate",
+          {}
+        ],
+        [
+          "layer.setProps",
+          {
+            "name": "Add vignette"
+          }
+        ],
+        [
+          "filter.cameraRaw",
+          {
+            "vignetteAmount": -30,
+            "vignetteMidpoint": 45,
+            "vignetteFeather": 70
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Creative Effects · Add grain",
+      "steps": [
+        [
+          "layer.duplicate",
+          {}
+        ],
+        [
+          "layer.setProps",
+          {
+            "name": "Add grain"
+          }
+        ],
+        [
+          "filter.cameraRaw",
+          {
+            "grainAmount": 25,
+            "grainSize": 25,
+            "grainRoughness": 50,
+            "seed": 31415
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Creative Effects · Black & white",
+      "steps": [
+        [
+          "layer.newAdjustmentLayer.blackWhite",
+          {
+            "name": "Black & white"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Creative Effects · Setup dodge & burn",
+      "steps": [
+        [
+          "layer.new.layer",
+          {
+            "name": "Dodge & Burn — paint white / black"
+          }
+        ],
+        [
+          "edit.fill",
+          {
+            "contents": "gray",
+            "target": "pixels"
+          }
+        ],
+        [
+          "layer.setProps",
+          {
+            "blend": "Soft Light",
+            "opacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · Remove all",
+      "steps": [
+        [
+          "view.clearGuides",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Guides · Centerlines",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 2,
+            "rows": 2,
+            "gutter": 0,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · Thirds",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 3,
+            "rows": 3,
+            "gutter": 0,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · Thirds (with gutters)",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 3,
+            "rows": 3,
+            "gutter": 20,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · 4x4 grid",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 4,
+            "rows": 4,
+            "gutter": 0,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · 4x4 grid (with gutters)",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 4,
+            "rows": 4,
+            "gutter": 20,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · 12x12 grid",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 12,
+            "rows": 12,
+            "gutter": 0,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Guides · 12x12 grid (with gutters)",
+      "steps": [
+        [
+          "view.newGuideLayout",
+          {
+            "columns": 12,
+            "rows": 12,
+            "gutter": 20,
+            "clearExisting": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Resize · Instagram (Landscape) — 1080 x 566",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1080,
+            "height": 566,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1080,
+            "height": 566,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Resize · Instagram (Portrait) — 1080 x 1350",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1080,
+            "height": 1350,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1080,
+            "height": 1350,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Resize · Instagram (Square) — 1080 x 1080",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1080,
+            "height": 1080,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1080,
+            "height": 1080,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Resize · Facebook post — 1200 x 630",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1200,
+            "height": 630,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1200,
+            "height": 630,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Resize · X (Twitter) post — 1600 x 900",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1600,
+            "height": 900,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1600,
+            "height": 900,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Resize · YouTube thumbnail — 1280 x 720",
+      "steps": [
+        [
+          "file.automate.fitImage",
+          {
+            "width": 1280,
+            "height": 720,
+            "resample": "lanczos"
+          }
+        ],
+        [
+          "image.canvasSize",
+          {
+            "width": 1280,
+            "height": 720,
+            "anchor": "center",
+            "extensionColor": "transparent"
+          }
+        ],
+        [
+          "view.fitOnScreen",
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as PSD",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "qDesinger.psd"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as PNG",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "qDesinger.png"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as JPG",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "qDesinger.jpg"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as TIFF",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "qDesinger.tiff",
+            "tiffLayers": true
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as GIF",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "qDesinger.gif"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Export · Save as PDF (flattened)",
+      "steps": [
+        [
+          "file.saveAs",
+          {
+            "path": "__quincy_flattened_pdf__.png"
+          }
+        ]
+      ]
+    }
+  ]
+}
