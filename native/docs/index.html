@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>qDesinger</title>
+  <meta name="qdesinger-build" content="20261015-segmented-startup">
+  <meta name="description" content="qDesinger 網頁影像編輯器：圖層、遮色片、筆刷、文字與 PSD 編輯。以 PhotoCraft 0.7.0 為基礎，內建可收合的 Actions 分類側欄。">
+  
+<script type="module">
+const loading = document.getElementById('photocraft_loading');
+const status = loading.querySelector('p');
+const progress = text => { status.textContent = text; };
+try {
+  if (location.protocol === 'file:') throw new Error('請使用 HTTPS 網址開啟網站，勿直接雙擊 HTML。');
+  progress('正在載入啟動元件…');
+  const [bindings, actions, pdf, loader] = await Promise.all([
+    import('./photocraft-web-f4903679dcdb0f71.js'),
+    import('./builtin-actions.mjs'),
+    import('./action-pdf.mjs'),
+    import('./engine-loader-c363c0712d1e.mjs')
+  ]);
+  let noticeTimer;
+  function notify(message, error = false) {
+    const notice = document.getElementById('actions_notice');
+    notice.querySelector('span').textContent = message;
+    notice.hidden = false;
+    notice.dataset.error = String(error);
+    clearTimeout(noticeTimer);
+    if (!error) noticeTimer = setTimeout(() => {notice.hidden = true;}, 12000);
+  }
+  document.querySelector('#actions_notice button').onclick = () => {document.getElementById('actions_notice').hidden = true;};
+  pdf.installPDFExport(notify);
+  try { actions.revealActionsOnce(); actions.dockActionsColumnOnce(); }
+  catch (error) { console.warn('Actions panel preference:', error); }
+  const bytes = await loader.loadEngine({"parts": [{"file": "photocraft-web-f4903679dcdb0f71.part1.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part2.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part3.bin", "size": 8388608}, {"file": "photocraft-web-f4903679dcdb0f71.part4.bin", "size": 1884152}], "size": 27049976, "sha256": "17dd68d80df8112a7b4448dc0ab1a6a7c4be864f2d802bebb57abeb02e147f52"}, progress);
+  progress('正在啟動 qDesinger…');
+  const wasm = await bindings.default({module_or_path: bytes});
+  window.wasmBindings = bindings;
+  dispatchEvent(new CustomEvent('TrunkApplicationStarted', {detail: {wasm}}));
+} catch (error) {
+  console.error('qDesinger startup:', error);
+  if (loading.isConnected) {
+    progress('qDesinger 載入失敗');
+    const detail = document.createElement('p');
+    detail.id = 'startup_error';
+    detail.textContent = error?.message || String(error);
+    loading.append(detail);
+    document.getElementById('photocraft_stalled').style.visibility = 'visible';
+  }
+}
+</script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    #photocraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #photocraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 0 16px; text-align: center; color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+    #startup_error { color: #ffb4a9; overflow-wrap:anywhere; }
+    #photocraft_loading p { margin: 0 0 8px; max-width: 420px; line-height: 1.5; }
+    #photocraft_loading a { color: #e0e0e0; pointer-events: auto; }
+    /* The app removes this element once it runs. If the WebAssembly never downloads or doesn't match
+       this page, no Rust runs to say so, so the page itself shows what to do after a while. */
+    #photocraft_stalled { color: #8c8c8c; visibility: hidden; animation: photocraft-stalled 0s 20s forwards; }
+    @keyframes photocraft-stalled { to { visibility: visible; } }
+    #actions_notice {position:fixed;z-index:10;left:50%;bottom:30px;transform:translateX(-50%);max-width:min(680px,85vw);padding:12px 38px 12px 16px;border:1px solid #666;border-radius:8px;background:#303030;color:#eee;font:13px/1.6 system-ui;box-shadow:0 8px 28px #0006;}
+    #actions_notice[hidden] {display:none;}
+    #actions_notice[data-error="true"] {border-color:#dc9773;}
+    #actions_notice button {position:absolute;right:8px;top:8px;background:transparent;border:0;color:#eee;cursor:pointer;font-size:20px;}
+  </style>
+<link rel="modulepreload" href="./photocraft-web-f4903679dcdb0f71.js" crossorigin="anonymous" integrity="sha384-/YwudaFO2tYOqJyxrwzfqwIg+FySv1EKjEqVBGnnXdjDmQzqmAMx91cOmXE8a+pr"></head>
+<body>
+  <canvas id="photocraft_canvas"></canvas>
+  <aside id="actions_notice" role="status" aria-live="polite" hidden><span></span><button type="button" aria-label="關閉提示">×</button></aside>
+  <div id="photocraft_loading">
+    <p>正在載入 qDesinger&hellip;</p>
+    <p id="photocraft_stalled">載入時間較長。首次開啟需要下載編輯引擎，請稍候。若持續無法開啟，可<a href="">重新載入</a>，或切換<a href="?webgl">相容模式</a>。</p>
+  </div>
+</body>
+</html>
