@@ -1,0 +1,3242 @@
+--- a/apps/photocraft-web/Cargo.toml
++++ b/apps/photocraft-web/Cargo.toml
+@@ -26,6 +26,7 @@
+ photocraft-ui-egui = { workspace = true }
+ egui = { workspace = true }
+ log = { workspace = true }
++serde_json = { workspace = true }
+ 
+ [target.'cfg(target_arch = "wasm32")'.dependencies]
+ # `wgpu` pulls egui-wgpu's defaults: WebGPU plus the WebGL2 fallback.
+@@ -37,6 +38,5 @@
+ web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "BeforeUnloadEvent", "AbortController", "AbortSignal", "DomException", "Response", "IdbFactory", "IdbOpenDbRequest", "IdbDatabase", "IdbRequest", "IdbTransaction", "IdbTransactionMode", "IdbObjectStore", "IdbCursor", "IdbCursorWithValue", "RequestInit", "Navigator"] }
+ 
+ [dev-dependencies]
+-serde_json = { workspace = true }
+ photocraft-paint = { workspace = true }
+ photocraft-psd = { workspace = true }
+--- a/apps/photocraft-web/index.html
++++ b/apps/photocraft-web/index.html
+@@ -3,7 +3,7 @@
+ <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+-  <title>PhotoCraft</title>
++  <title>qDesinger</title>
+   <link data-trunk rel="rust" data-bin="photocraft-web" data-cargo-profile="wasm-release" data-cargo-features="heif" data-wasm-opt="z" data-weak-refs />
+   <style>
+     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+@@ -21,8 +21,8 @@
+ <body>
+   <canvas id="photocraft_canvas"></canvas>
+   <div id="photocraft_loading">
+-    <p>Loading PhotoCraft&hellip;</p>
+-    <p id="photocraft_stalled">This is taking longer than usual. If PhotoCraft doesn't start, its files may have failed to
++    <p>Loading qDesinger&hellip;</p>
++    <p id="photocraft_stalled">This is taking longer than usual. If qDesinger doesn't start, its files may have failed to
+       download or come from a different version of this page. <a href="">Reload</a> to try again; the browser
+       console lists what failed.</p>
+   </div>
+--- /dev/null
++++ b/apps/photocraft-web/src/builtin-actions.json
+@@ -0,0 +1,462 @@
++{
++  "version": 1,
++  "actions": [
++    {
++      "name": "Creative Effects · Enhance clarity",
++      "steps": [
++        [
++          "layer.duplicate",
++          {}
++        ],
++        [
++          "layer.setProps",
++          {
++            "name": "Enhance clarity"
++          }
++        ],
++        [
++          "filter.cameraRaw",
++          {
++            "clarity": 25
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Creative Effects · Sharpen",
++      "steps": [
++        [
++          "layer.duplicate",
++          {}
++        ],
++        [
++          "layer.setProps",
++          {
++            "name": "Sharpen"
++          }
++        ],
++        [
++          "filter.sharpen.unsharpMask",
++          {
++            "amount": 80,
++            "radius": 1.2,
++            "threshold": 2
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Creative Effects · Add vignette",
++      "steps": [
++        [
++          "layer.duplicate",
++          {}
++        ],
++        [
++          "layer.setProps",
++          {
++            "name": "Add vignette"
++          }
++        ],
++        [
++          "filter.cameraRaw",
++          {
++            "vignetteAmount": -30,
++            "vignetteMidpoint": 45,
++            "vignetteFeather": 70
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Creative Effects · Add grain",
++      "steps": [
++        [
++          "layer.duplicate",
++          {}
++        ],
++        [
++          "layer.setProps",
++          {
++            "name": "Add grain"
++          }
++        ],
++        [
++          "filter.cameraRaw",
++          {
++            "grainAmount": 25,
++            "grainSize": 25,
++            "grainRoughness": 50,
++            "seed": 31415
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Creative Effects · Black & white",
++      "steps": [
++        [
++          "layer.newAdjustmentLayer.blackWhite",
++          {
++            "name": "Black & white"
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Creative Effects · Setup dodge & burn",
++      "steps": [
++        [
++          "layer.new.layer",
++          {
++            "name": "Dodge & Burn — paint white / black"
++          }
++        ],
++        [
++          "edit.fill",
++          {
++            "contents": "gray",
++            "target": "pixels"
++          }
++        ],
++        [
++          "layer.setProps",
++          {
++            "blend": "Soft Light",
++            "opacity": 1
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · Remove all",
++      "steps": [
++        [
++          "view.clearGuides",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Guides · Centerlines",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 2,
++            "rows": 2,
++            "gutter": 0,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · Thirds",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 3,
++            "rows": 3,
++            "gutter": 0,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · Thirds (with gutters)",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 3,
++            "rows": 3,
++            "gutter": 20,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · 4x4 grid",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 4,
++            "rows": 4,
++            "gutter": 0,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · 4x4 grid (with gutters)",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 4,
++            "rows": 4,
++            "gutter": 20,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · 12x12 grid",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 12,
++            "rows": 12,
++            "gutter": 0,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Guides · 12x12 grid (with gutters)",
++      "steps": [
++        [
++          "view.newGuideLayout",
++          {
++            "columns": 12,
++            "rows": 12,
++            "gutter": 20,
++            "clearExisting": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Resize · Instagram (Landscape) — 1080 x 566",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1080,
++            "height": 566,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1080,
++            "height": 566,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Resize · Instagram (Portrait) — 1080 x 1350",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1080,
++            "height": 1350,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1080,
++            "height": 1350,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Resize · Instagram (Square) — 1080 x 1080",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1080,
++            "height": 1080,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1080,
++            "height": 1080,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Resize · Facebook post — 1200 x 630",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1200,
++            "height": 630,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1200,
++            "height": 630,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Resize · X (Twitter) post — 1600 x 900",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1600,
++            "height": 900,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1600,
++            "height": 900,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Resize · YouTube thumbnail — 1280 x 720",
++      "steps": [
++        [
++          "file.automate.fitImage",
++          {
++            "width": 1280,
++            "height": 720,
++            "resample": "lanczos"
++          }
++        ],
++        [
++          "image.canvasSize",
++          {
++            "width": 1280,
++            "height": 720,
++            "anchor": "center",
++            "extensionColor": "transparent"
++          }
++        ],
++        [
++          "view.fitOnScreen",
++          {}
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as PSD",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "qDesinger.psd"
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as PNG",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "qDesinger.png"
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as JPG",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "qDesinger.jpg"
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as TIFF",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "qDesinger.tiff",
++            "tiffLayers": true
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as GIF",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "qDesinger.gif"
++          }
++        ]
++      ]
++    },
++    {
++      "name": "Export · Save as PDF (flattened)",
++      "steps": [
++        [
++          "file.saveAs",
++          {
++            "path": "__quincy_flattened_pdf__.png"
++          }
++        ]
++      ]
++    }
++  ]
++}
+--- /dev/null
++++ b/apps/photocraft-web/src/builtin_actions.rs
+@@ -0,0 +1,79 @@
++//! Bundled actions are available even when browser storage cannot be opened or read.
++//! Hydrate custom actions first, then append missing built-ins in memory without rewriting
++//! the stored action file. Subsequent explicit edits use the normal preset persistence path.
++use photocraft_engine::{Session, actions_cmds::ActionsFile};
++
++fn install(session: &mut Session) -> Result<usize, String> {
++    let builtins: ActionsFile = serde_json::from_str(include_str!("builtin-actions.json")).map_err(|e| e.to_string())?;
++    if builtins.version != 1 {
++        return Err("Unsupported bundled Actions version".into());
++    }
++    let before = session.actions.list.len();
++    for action in builtins.actions {
++        if !session.actions.list.iter().any(|existing| existing.name == action.name) {
++            session.actions.list.push(action);
++        }
++    }
++    Ok(session.actions.list.len() - before)
++}
++
++pub fn session(bridge: crate::preset_bridge::Bridge) -> (Session, Vec<String>) {
++    let (mut session, mut warnings) = crate::preset_bridge::session(bridge);
++    if let Err(error) = install(&mut session) {
++        warnings.push(format!("Built-in Actions: {error}"));
++    }
++    (session, warnings)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::preset_bridge::Bridge;
++    use photocraft_engine::{actions_cmds::Action, preset_store::ACTIONS_FILE};
++    use serde_json::json;
++
++    #[test]
++    fn unavailable_storage_still_has_all_actions_and_can_execute() {
++        let bridge = Bridge::default();
++        bridge.unavailable("NotFoundError: The object can not be found here.".into());
++        let (mut session, warnings) = session(bridge.clone());
++        assert!(warnings.is_empty());
++        assert_eq!(session.actions.list.len(), 26);
++        assert_eq!(install(&mut session).unwrap(), 0);
++        assert!(bridge.begin().is_none());
++        session.execute("file.new", json!({"width":30,"height":30})).unwrap();
++        let index = session.actions.list.iter().position(|a| a.name == "Guides · Thirds").unwrap();
++        session.execute("actions.play", json!({"action":index})).unwrap();
++    }
++
++    #[test]
++    fn saved_custom_actions_and_edited_builtins_win_without_rewriting() {
++        let bridge = Bridge::default();
++        let custom = Action { name: "My action".into(), steps: vec![] };
++        let edited = Action { name: "Creative Effects · Sharpen".into(), steps: vec![] };
++        let saved = ActionsFile { version: 1, actions: vec![custom.clone(), edited.clone()] };
++        bridge.load(ACTIONS_FILE, serde_json::to_vec(&saved).unwrap()).unwrap();
++        let (mut session, warnings) = session(bridge.clone());
++        assert!(warnings.is_empty());
++        assert_eq!(session.actions.list.len(), 27);
++        assert_eq!(session.actions.list[0], custom);
++        assert_eq!(session.actions.list[1], edited);
++        session.sync_preset_store();
++        if let Some(batch) = bridge.begin() {
++            assert!(!batch.contains_key(ACTIONS_FILE));
++        }
++    }
++
++    #[test]
++    fn unreadable_action_record_is_preserved_and_builtins_remain_available() {
++        let bridge = Bridge::default();
++        bridge.load(ACTIONS_FILE, b"invalid original data".to_vec()).unwrap();
++        let (mut session, warnings) = session(bridge.clone());
++        assert!(!warnings.is_empty());
++        assert_eq!(session.actions.list.len(), 26);
++        session.sync_preset_store();
++        if let Some(batch) = bridge.begin() {
++            assert!(!batch.contains_key(ACTIONS_FILE));
++        }
++    }
++}
+--- a/apps/photocraft-web/src/main.rs
++++ b/apps/photocraft-web/src/main.rs
+@@ -18,6 +18,9 @@
+ 
+ #[cfg(any(target_arch = "wasm32", test))]
+ mod preset_bridge;
++
++#[cfg(any(target_arch = "wasm32", test))]
++mod builtin_actions;
+ 
+ #[cfg(target_arch = "wasm32")]
+ mod indexed_presets;
+--- a/apps/photocraft-web/src/web.rs
++++ b/apps/photocraft-web/src/web.rs
+@@ -14,7 +14,7 @@
+ 
+ type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
+ 
+-/// Everything File › Open reads: PhotoCraft, Photoshop, OpenRaster and Affinity documents, flat images, and
++/// Everything File › Open reads: qDesinger, Photoshop, OpenRaster and Affinity documents, flat images, and
+ /// Photoshop brushes (.abr), gradients (.grd) and swatches (.aco, .ase), which go to the preset libraries.
+ const OPEN_EXTS: &[&str] = &[
+     "pcraft", "pdn", "ora", "psd", "psb", "psdt", "png", "jpg", "jpeg", "tif", "tiff", "webp", "gif", "bmp", "tga", "ico", "qoi", "exr", "hdr", "pbm", "pgm",
+@@ -81,7 +81,7 @@
+                     let inbox: Inbox = Arc::default();
+                     let served: Served = Arc::default();
+                     load_font_manifest(served.clone(), cc.egui_ctx.clone());
+-                    let (session, warnings) = crate::preset_bridge::session(presets.clone());
++                    let (session, warnings) = crate::builtin_actions::session(presets.clone());
+                     preset_warnings.extend(warnings);
+                     let mut app = PhotocraftApp::new(session, services(inbox.clone()));
+                     if !preset_warnings.is_empty() {
+@@ -104,7 +104,7 @@
+         if let Some(el) = document.get_element_by_id("photocraft_loading") {
+             match result {
+                 Ok(()) => el.remove(),
+-                Err(e) => el.set_inner_html(&format!("<p>PhotoCraft failed to start: {e:?}</p><p>A browser with WebGPU or WebGL2 is required.</p>")),
++                Err(e) => el.set_inner_html(&format!("<p>qDesinger failed to start: {e:?}</p><p>A browser with WebGPU or WebGL2 is required.</p>")),
+             }
+         }
+     });
+--- a/crates/ui-egui/src/actions.rs
++++ b/crates/ui-egui/src/actions.rs
+@@ -21,6 +21,10 @@
+     pub selected: Option<usize>,
+     pub selected_step: Option<usize>,
+     pub expanded: Vec<bool>,
++    pub library_search: String,
++    pub library_yours: bool,
++    pub library_collapsed: Vec<String>,
++    pub library_editing: bool,
+     #[serde(skip)]
+     reveal_recording: Option<(usize, usize)>,
+     /// The action whose name is being edited in place (double-click on its name).
+--- /dev/null
++++ b/crates/ui-egui/src/actions_library.rs
+@@ -0,0 +1,215 @@
++//! Searchable, single-click Actions library in the docked column.
++use crate::{PhotocraftApp, theme::Tokens};
++use egui::{Align2, FontId, Rect, Sense, Stroke, pos2, vec2};
++use serde_json::json;
++
++const GROUPS: [&str; 4] = ["Creative Effects", "Guides", "Resize", "Export"];
++
++fn category(name: &str) -> Option<(&str, &str)> {
++    let (group, label) = name.split_once(" · ")?;
++    GROUPS.contains(&group).then_some((group, label))
++}
++
++fn icon(group: &str, label: &str) -> &'static str {
++    match group {
++        "Guides" => "grid-3x3",
++        "Resize" => "crop",
++        "Export" => "file",
++        _ => match label {
++            "Sharpen" => "triangle",
++            "Add vignette" => "circle",
++            "Add grain" => "droplet",
++            "Black & white" => "contrast",
++            "Setup dodge & burn" => "blend",
++            _ => "sparkles",
++        },
++    }
++}
++
++pub fn panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
++    if app.ui.actions.library_editing {
++        if ui.button("‹ Back to Actions").clicked() {
++            app.ui.actions.library_editing = false;
++        }
++        crate::actions::panel(app, ui);
++        return;
++    }
++    let t = Tokens::get(ui.ctx());
++    ui.add_space(4.0);
++    ui.horizontal(|ui| {
++        let width = (ui.available_width() - 24.0 - ui.spacing().item_spacing.x).max(0.0);
++        let search =
++            ui.add_sized([width, 28.0], egui::TextEdit::singleline(&mut app.ui.actions.library_search).desired_width(width).hint_text("Search actions"));
++        search.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Search actions"));
++        if crate::icons::button(ui, "x", 24.0, false, "Clear search").clicked() {
++            app.ui.actions.library_search.clear();
++        }
++    });
++    ui.add_space(8.0);
++    ui.horizontal(|ui| {
++        ui.selectable_value(&mut app.ui.actions.library_yours, false, "Essentials");
++        ui.selectable_value(&mut app.ui.actions.library_yours, true, "Yours");
++        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
++            if crate::icons::button(ui, "plus", 24.0, false, "Record or edit actions").clicked() {
++                app.ui.actions.library_editing = true;
++            }
++        });
++    });
++    ui.separator();
++    let query = app.ui.actions.library_search.trim().to_lowercase();
++    let yours = app.ui.actions.library_yours;
++    let rows: Vec<_> = app
++        .session
++        .actions
++        .list
++        .iter()
++        .enumerate()
++        .filter_map(|(index, action)| {
++            let cat = category(&action.name);
++            if yours != cat.is_none() || !action.name.to_lowercase().contains(&query) {
++                return None;
++            }
++            let (group, label) = cat.unwrap_or(("Your actions", &action.name));
++            Some((index, group.to_owned(), label.to_owned(), action.name.clone()))
++        })
++        .collect();
++    let mut play = None;
++    let mut edit = None;
++    let height = ui.available_height().max(0.0);
++    egui::ScrollArea::vertical().id_salt("actions-library-list").max_height(height).auto_shrink([false, false]).show(ui, |ui| {
++        if rows.is_empty() {
++            ui.add_space(12.0);
++            ui.label(if query.is_empty() && yours { "Your recorded actions appear here. Use + to record or edit." } else { "No matching actions" });
++        }
++        let groups: Vec<&str> = if yours { vec!["Your actions"] } else { GROUPS.to_vec() };
++        for group in groups {
++            let group_rows: Vec<_> = rows.iter().filter(|r| r.1 == group).collect();
++            if group_rows.is_empty() {
++                continue;
++            }
++            ui.add_space(8.0);
++            let collapsed = query.is_empty() && app.ui.actions.library_collapsed.iter().any(|g| g == group);
++            let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), 30.0), Sense::click());
++            response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, group));
++            crate::icons::paint(
++                ui,
++                Rect::from_center_size(pos2(rect.left() + 8.0, rect.center().y), vec2(14.0, 14.0)),
++                if collapsed { "chevron-right" } else { "chevron-down" },
++                12.0,
++                t.text_dim,
++            );
++            ui.painter().text(pos2(rect.left() + 24.0, rect.center().y), Align2::LEFT_CENTER, group, FontId::proportional(12.5), t.text);
++            if response.clicked() {
++                if collapsed {
++                    app.ui.actions.library_collapsed.retain(|g| g != group);
++                } else if !app.ui.actions.library_collapsed.iter().any(|g| g == group) {
++                    app.ui.actions.library_collapsed.push(group.to_owned());
++                }
++            }
++            if !collapsed {
++                for (index, _, label, full_name) in group_rows {
++                    let enabled = app.session.actions.recording.is_none() && (yours || app.session.active().is_some());
++                    let (row, response) = ui.allocate_exact_size(vec2(ui.available_width(), 30.0), if enabled { Sense::click() } else { Sense::hover() });
++                    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
++                    if app.ui.actions.selected == Some(*index) {
++                        ui.painter().rect_filled(row, 0.0, t.row_selected);
++                    } else if response.hovered() {
++                        ui.painter().rect_filled(row, 0.0, t.hover);
++                    }
++                    crate::icons::paint(
++                        ui,
++                        Rect::from_center_size(pos2(row.left() + 12.0, row.center().y), vec2(20.0, 20.0)),
++                        icon(group, label),
++                        17.0,
++                        if enabled { t.icon } else { t.text_faint },
++                    );
++                    let text_rect = Rect::from_min_max(pos2(row.left() + 30.0, row.top()), pos2(row.right() - 20.0, row.bottom()));
++                    ui.painter().with_clip_rect(text_rect.intersect(ui.clip_rect())).text(
++                        text_rect.left_center(),
++                        Align2::LEFT_CENTER,
++                        label,
++                        FontId::proportional(12.0),
++                        if enabled { t.text } else { t.text_faint },
++                    );
++                    if response.hovered() && enabled {
++                        crate::icons::paint(ui, Rect::from_center_size(pos2(row.right() - 8.0, row.center().y), vec2(12.0, 12.0)), "play", 11.0, t.icon);
++                    }
++                    if response.clicked() && enabled {
++                        play = Some(*index);
++                    }
++                    response.context_menu(|ui| {
++                        if ui.button("Edit action steps…").clicked() {
++                            edit = Some(*index);
++                            ui.close();
++                        }
++                    });
++                    response.on_hover_text(if enabled {
++                        format!("{full_name}\nClick to run · Right-click to edit steps")
++                    } else {
++                        "Open an image and stop recording to run this action".into()
++                    });
++                }
++            }
++            ui.add_space(7.0);
++            let y = ui.cursor().top();
++            ui.painter().line_segment([pos2(ui.min_rect().left() + 8.0, y), pos2(ui.max_rect().right() - 8.0, y)], Stroke::new(1.0, t.separator));
++        }
++    });
++    if let Some(index) = edit {
++        app.ui.actions.selected = Some(index);
++        app.ui.actions.selected_step = None;
++        app.ui.actions.expanded.resize(app.session.actions.list.len(), false);
++        if let Some(expanded) = app.ui.actions.expanded.get_mut(index) {
++            *expanded = true;
++        }
++        app.ui.actions.library_editing = true;
++    }
++    if let Some(index) = play {
++        app.ui.actions.selected = Some(index);
++        app.ui.actions.selected_step = None;
++        match app.run("actions.play", json!({"action":index})) {
++            Ok(result) => crate::actions::report_play(app, &result),
++            Err(error) => {
++                app.ui.status = format!("Action playback failed: {error}");
++                app.ui.status_error = true;
++            }
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use egui_kittest::{Harness, kittest::Queryable};
++    use photocraft_engine::actions_cmds::Action;
++
++    #[test]
++    fn categories_search_single_click_and_yours_use_real_action_indices() {
++        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
++        app.run("file.new", json!({"width":32,"height":32})).unwrap();
++        for name in ["Custom", "Guides · Thirds", "Creative Effects · Sharpen", "Export · Save as PNG"] {
++            app.session.actions.list.push(Action { name: name.into(), steps: vec![("layer.new.layer".into(), json!({"name":name}))] });
++        }
++        let mut h = Harness::builder().with_size(vec2(320.0, 800.0)).build_ui_state(|ui, app| panel(app, ui), app);
++        h.run_steps(3);
++        h.get_by_label("Thirds").click();
++        h.run_steps(3);
++        assert_eq!(h.state().ui.actions.selected, Some(1));
++        assert_eq!(h.state().session.active().unwrap().doc.layers.len(), 2);
++        h.get_by_label("Guides").click();
++        h.run_steps(3);
++        assert!(h.query_by_label("Thirds").is_none());
++        h.state_mut().ui.actions.library_search = "THIRDS".into();
++        h.run_steps(3);
++        assert!(h.query_by_label("Thirds").is_some());
++        assert!(h.query_by_label("Sharpen").is_none());
++        h.state_mut().ui.actions.library_search.clear();
++        h.get_by_label("Yours").click();
++        h.run_steps(3);
++        assert!(h.query_by_label("Thirds").is_none());
++        h.get_by_label("Custom").click();
++        h.run_steps(3);
++        assert_eq!(h.state().ui.actions.selected, Some(0));
++        assert_eq!(h.state().session.active().unwrap().doc.layers.len(), 3);
++    }
++}
+--- a/crates/ui-egui/src/canvas.rs
++++ b/crates/ui-egui/src/canvas.rs
+@@ -2190,7 +2190,7 @@
+     ui.scope_builder(egui::UiBuilder::new().max_rect(card), |ui| {
+         ui.vertical_centered(|ui| {
+             ui.horizontal(|ui| {
+-                let title = ui.painter().layout_no_wrap(tl!("PhotoCraft").into(), crate::theme::semibold(38.0), t.text);
++                let title = ui.painter().layout_no_wrap(tl!("qDesinger").into(), crate::theme::semibold(38.0), t.text);
+                 let by = ui.painter().layout_no_wrap(tl!("open source").into(), egui::FontId::proportional(13.0), t.text_faint);
+                 let total = title.size().x + by.size().x + 10.0;
+                 ui.add_space(((card.width() - total) / 2.0).max(0.0));
+--- a/crates/ui-egui/src/credits_tests.rs
++++ b/crates/ui-egui/src/credits_tests.rs
+@@ -214,7 +214,7 @@
+     h.run_steps(6);
+     let ok = h.query_all_by_role(Role::Button).find(|n| n.accesskit_node().label().as_deref() == Some("OK")).map(|n| n.rect()).expect("the OK button");
+     // The dialog's contents: everything between its title and the OK button.
+-    let title = h.query_all_by_label("About PhotoCraft").map(|n| n.rect()).find(|r| r.top() < ok.top()).expect("the dialog title");
++    let title = h.query_all_by_label("About qDesinger").map(|n| n.rect()).find(|r| r.top() < ok.top()).expect("the dialog title");
+     let lowest = h
+         .query_all(egui_kittest::kittest::by().predicate(|n| n.bounding_box().is_some()))
+         .map(|n| n.rect())
+--- a/crates/ui-egui/src/dialogs.rs
++++ b/crates/ui-egui/src/dialogs.rs
+@@ -369,6 +369,7 @@
+         "contributors" => crate::credits::contributors_ui(app, ui),
+         "models" => crate::credits::models_ui(ui),
+         _ => {
++            ui.heading("qDesinger");
+             ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
+             ui.label(crate::i18n::fmt(tl!("Version {version}"), &[("version", &photocraft_engine::build_info::long_version())]));
+             ui.add_space(12.0);
+@@ -401,7 +402,7 @@
+     match d.kind {
+         DialogKind::NewDocument => "New Document".into(),
+         DialogKind::About if d.fields.get("systemInfo").and_then(Value::as_bool) == Some(true) => "System Info".into(),
+-        DialogKind::About => "About PhotoCraft".into(),
++        DialogKind::About => "About qDesinger".into(),
+         DialogKind::LayerStyle => "Layer Style".into(),
+         DialogKind::Command => d.fields.get("__label").and_then(Value::as_str).unwrap_or("Command").trim_end_matches('…').to_string(),
+         DialogKind::Error => "Error".into(),
+--- a/crates/ui-egui/src/dock.rs
++++ b/crates/ui-egui/src/dock.rs
+@@ -160,6 +160,12 @@
+ #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+ #[serde(default)]
+ pub struct DockLayout {
++    /// Actions can live independently in the narrow icon rail.
++    pub actions_in_rail: bool,
++    pub actions_rail_open: bool,
++    pub actions_rail_history: bool,
++    /// User-chosen Actions column width, included in saved workspaces.
++    pub actions_rail_width: Option<f32>,
+     /// Top-to-bottom order; a group missing here (say one added after the layout was saved)
+     /// goes just below the nearest group that precedes it by default (or last).
+     pub order: Vec<Group>,
+@@ -219,7 +225,12 @@
+     /// bodies.
+     pub fn visible_tabs(&self, group: Group, pro: bool) -> Vec<(usize, &'static str)> {
+         let hidden = self.hidden_tabs.get(&group);
+-        self.ordered_tabs(group, pro).into_iter().filter(|(_, name)| !hidden.is_some_and(|xs| xs.iter().any(|x| x.as_str() == *name))).collect()
++        self.ordered_tabs(group, pro)
++            .into_iter()
++            .filter(|(tab, name)| {
++                !(hidden.is_some_and(|xs| xs.iter().any(|x| x.as_str() == *name)) || self.actions_in_rail && group == Group::History && *tab == 1)
++            })
++            .collect()
+     }
+ 
+     /// Move tab `tab` (an original index) of `group` so it is drawn just before tab `before`
+@@ -391,6 +402,111 @@
+     app.ui.dock.set_collapsed(g, false);
+ }
+ 
++pub fn rail_rect(ctx: &egui::Context) -> Option<Rect> {
++    ctx.data(|d| d.get_temp(egui::Id::new("actions-rail-drop-target")))
++}
++
++pub fn remember_rail_rect(ctx: &egui::Context, rect: Rect) {
++    ctx.data_mut(|d| d.insert_temp(egui::Id::new("actions-rail-drop-target"), rect));
++}
++
++pub fn dock_actions_in_rail(app: &mut PhotocraftApp) {
++    app.ui.dock.actions_in_rail = true;
++    app.ui.dock.actions_rail_open = false;
++    if app.ui.dock_tabs.history == 1 {
++        app.ui.dock_tabs.history = 0;
++    }
++}
++
++pub fn return_actions_to_dock(app: &mut PhotocraftApp) {
++    app.ui.dock.actions_in_rail = false;
++    app.ui.dock.actions_rail_open = false;
++    app.ui.dock_tabs.history = 1;
++    reveal(app, Group::History);
++}
++
++/// A docked, full-height column: expanding it reserves canvas space.
++pub fn actions_rail_column(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
++    if !app.ui.dock.actions_in_rail || !app.ui.panels.rail {
++        return;
++    }
++    let t = Tokens::get(ui.ctx());
++    if !app.ui.dock.actions_rail_open {
++        egui::Panel::right("actions-collapsed-rail").resizable(false).exact_size(36.0).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(4)).show(ui, |ui| {
++            remember_rail_rect(ui.ctx(), ui.max_rect());
++            if crate::icons::button(ui, "chevrons-left", 28.0, false, "Expand panels").clicked() {
++                app.ui.dock.actions_rail_open = true;
++            }
++            for (history, icon, label) in [(false, "sparkles", "Actions"), (true, "clock", "History")] {
++                let response = crate::icons::rail_button(ui, icon, 28.0, false, label);
++                response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
++                if !history {
++                    ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("actions-rail-button"), response.rect));
++                }
++                if response.clicked() {
++                    app.ui.dock.actions_rail_history = history;
++                    app.ui.dock.actions_rail_open = true;
++                }
++            }
++        });
++        return;
++    }
++    let mut restore = false;
++    let column_id = egui::Id::new("actions-expanded-column");
++    if let Some(width) = app.ui.dock.actions_rail_width.filter(|w| w.is_finite()) {
++        let available = ui.available_rect_before_wrap();
++        let width = width.clamp(240.0, 420.0);
++        let state = egui::containers::panel::PanelState { outer_rect: Rect::from_min_max(pos2(available.right() - width, available.top()), available.max) };
++        ui.ctx().data_mut(|d| d.insert_persisted(column_id, state));
++    }
++    let response = egui::Panel::right(column_id)
++        .resizable(true)
++        .default_size(300.0)
++        .size_range(240.0..=420.0)
++        .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(8))
++        .show(ui, |outer_ui| {
++            // Contents may wrap or clip, but must never enlarge the user's panel width.
++            let rect = outer_ui.max_rect();
++            let mut content = outer_ui.new_child(egui::UiBuilder::new().id_salt("actions-column-content").max_rect(rect));
++            content.set_clip_rect(rect.intersect(outer_ui.clip_rect()));
++            let ui = &mut content;
++            ui.horizontal(|ui| {
++                if ui.selectable_label(!app.ui.dock.actions_rail_history, "Actions").clicked() {
++                    app.ui.dock.actions_rail_history = false;
++                }
++                if ui.selectable_label(app.ui.dock.actions_rail_history, "History").clicked() {
++                    app.ui.dock.actions_rail_history = true;
++                }
++                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
++                    let collapse = crate::icons::button(ui, "chevrons-right", 24.0, false, "Collapse panels");
++                    collapse.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Collapse panels"));
++                    ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("actions-rail-button"), collapse.rect));
++                    if collapse.clicked() {
++                        app.ui.dock.actions_rail_open = false;
++                    }
++                    ui.menu_button(crate::icons::image("ellipsis", 16.0, t.icon), |ui| {
++                        if ui.add_enabled(!app.session.prefs().workspace_locked, egui::Button::new("Return to dock")).clicked() {
++                            restore = true;
++                            ui.close();
++                        }
++                    });
++                });
++            });
++            ui.separator();
++            if app.ui.dock.actions_rail_history {
++                crate::panels::history(app, ui);
++            } else {
++                crate::actions_library::panel(app, ui);
++            }
++            outer_ui.allocate_rect(rect, Sense::hover());
++        });
++    app.ui.dock.actions_rail_width = Some(response.response.rect.width());
++    ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("actions-column-rect"), response.response.rect));
++    if restore {
++        return_actions_to_dock(app);
++    }
++}
++
+ /// Icon rail click: a hidden group is shown, a collapsed one expanded and an expanded one
+ /// collapsed to its tab strip. A docked group is never hidden from the rail (it used to
+ /// toggle visibility, so one stray click made a panel vanish: #129); `docked` is false for
+@@ -457,6 +573,7 @@
+     let rects = rects_after_layout(&heights, area);
+     let mut actions: Vec<Action> = Vec::new();
+     let mut dragging: Option<Group> = None;
++    let mut actions_to_rail = false;
+     let mut strips: Vec<StripRects> = Vec::with_capacity(rects.len());
+     for (i, (g, rect)) in rects.iter().copied().enumerate() {
+         let collapsed = app.ui.dock.is_collapsed(g);
+@@ -517,8 +634,23 @@
+         if resp.strip.double_clicked() || resp.tab_double_clicked || (collapsed && resp.tab_clicked) {
+             actions.push(Action::ToggleCollapse(g));
+         }
++        let actions_tab = g == Group::History && indices.get(sel) == Some(&1);
++        let rail_hovered = app.ui.panels.rail && rail_rect(ui.ctx()).is_some_and(|rail| ui.ctx().pointer_latest_pos().is_some_and(|p| rail.contains(p)));
++        let rail_drop = !locked && actions_tab && rail_hovered && (resp.tab_dropped_out || resp.tab_reorder.is_some());
++        actions_to_rail |= rail_drop;
++        if !locked
++            && actions_tab
++            && rail_hovered
++            && resp.tab_dragging_out
++            && let Some(rail) = rail_rect(ui.ctx())
++        {
++            let painter = ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("actions-rail-drop-hint")));
++            painter.rect_filled(rail, 3.0, t.accent.gamma_multiply(0.18));
++            painter.rect_stroke(rail, 3.0, Stroke::new(2.0, t.accent), egui::StrokeKind::Inside);
++        }
+         // The strip uses visible indices; reorder in original ones.
+         if !locked
++            && !rail_drop
+             && let Some((from, before)) = resp.tab_reorder
+             && let Some(&tab) = indices.get(from)
+         {
+@@ -529,6 +661,7 @@
+             dragging = Some(g);
+         }
+         if !locked
++            && !rail_drop
+             && (resp.strip.drag_stopped() || resp.tab_dropped_out)
+             && let Some(p) = ui.ctx().pointer_interact_pos().or_else(|| ui.ctx().pointer_latest_pos())
+         {
+@@ -594,6 +727,9 @@
+         d.insert_temp(strips_id(), strips);
+     });
+     ui.advance_cursor_after_rect(area);
++    if actions_to_rail {
++        dock_actions_in_rail(app);
++    }
+     for a in actions {
+         match a {
+             Action::ToggleCollapse(g) => {
+--- a/crates/ui-egui/src/dock_tests.rs
++++ b/crates/ui-egui/src/dock_tests.rs
+@@ -8,6 +8,99 @@
+ use crate::theme::ThemeKind;
+ 
+ const ESSENTIALS: [Group; 3] = [Group::Color, Group::Properties, Group::Layers];
++
++#[test]
++fn actions_column_keeps_dragged_width_after_release_and_reload() {
++    for theme in [ThemeKind::ProMedium, ThemeKind::Studio] {
++        let (mut app, _, _) = app_with_layers();
++        app.ui.dock.actions_in_rail = true;
++        app.ui.dock.actions_rail_open = true;
++        app.ui.panels.history = false;
++        app.session.actions.list.push(photocraft_engine::actions_cmds::Action { name: "Resize · Instagram (Landscape) — 1080 x 566".into(), steps: vec![] });
++        let rect = |h: &Harness<'static, PhotocraftApp>| h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::new("actions-column-rect"))).unwrap();
++        let mut h = harness(app, vec2(1600.0, 1000.0), theme);
++        for width in [260.0, 380.0, 280.0] {
++            let before = rect(&h);
++            drag(&mut h, before.left_center(), egui::pos2(before.right() - width, before.center().y));
++            h.event(egui::Event::PointerMoved(egui::pos2(100.0, 100.0)));
++            h.run_steps(120);
++            assert!((rect(&h).width() - width).abs() <= 1.0, "{theme:?}: dragged {width}, settled at {}", rect(&h).width());
++        }
++        h.state_mut().ui.dock.actions_rail_history = true;
++        h.run_steps(10);
++        assert!((rect(&h).width() - 280.0).abs() <= 1.0);
++        h.state_mut().ui.dock.actions_rail_history = false;
++        h.state_mut().ui.dock.actions_rail_open = false;
++        h.run_steps(3);
++        h.state_mut().ui.dock.actions_rail_open = true;
++        h.run_steps(10);
++        assert!((rect(&h).width() - 280.0).abs() <= 1.0);
++        let saved = h.state().session.prefs().panel_layout.clone();
++        let (mut restored, _, _) = app_with_layers();
++        apply(&mut restored, &saved);
++        let mut reloaded = harness(restored, vec2(1600.0, 1000.0), theme);
++        reloaded.run_steps(20);
++        assert!((rect(&reloaded).width() - 280.0).abs() <= 1.0, "width survives a fresh egui context");
++    }
++}
++
++#[test]
++fn actions_rail_drag_preserves_history_and_round_trips() {
++    for theme in [ThemeKind::ProMedium, ThemeKind::Studio] {
++        let (mut app, _, _) = app_with_layers();
++        app.ui.panels.history = true;
++        app.ui.dock_tabs.history = 1;
++        let mut h = harness(app, vec2(1200.0, 900.0), theme);
++        let tab = last_strips(&h.ctx).into_iter().find(|s| s.group == Group::History).unwrap().tabs.into_iter().find(|(i, _)| *i == 1).unwrap().1.center();
++        let target = rail_rect(&h.ctx).unwrap().center();
++        drag(&mut h, tab, target);
++        assert!(h.state().ui.dock.actions_in_rail, "{theme:?}: Actions must dock in the rail");
++        assert!(h.state().ui.panels.history, "History stays visible");
++        assert_eq!(h.state().ui.dock_tabs.history, 0);
++        assert!(!h.state().ui.dock.visible_tabs(Group::History, true).iter().any(|(i, _)| *i == 1));
++        for expected in [true, false] {
++            let button = h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::new("actions-rail-button"))).unwrap().center();
++            h.event(egui::Event::PointerMoved(button));
++            h.run_steps(1);
++            h.event(egui::Event::PointerButton { pos: button, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
++            h.run_steps(1);
++            h.event(egui::Event::PointerButton { pos: button, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
++            h.run_steps(3);
++            assert_eq!(h.state().ui.dock.actions_rail_open, expected, "rail icon toggles the real panel");
++            if expected {
++                let column = h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::new("actions-column-rect"))).unwrap();
++                assert!(column.height() > 800.0, "Actions fills the dock height");
++                assert!(column.width() >= 240.0);
++                let canvas = h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::new("dock-test-canvas"))).unwrap();
++                assert!(canvas.right() <= column.left() + 1.0, "expanded column reserves canvas space");
++            }
++        }
++        let saved = snapshot(h.state());
++        let (mut restored, _, _) = app_with_layers();
++        apply(&mut restored, &saved);
++        assert!(restored.ui.dock.actions_in_rail);
++        let ctx = h.ctx.clone();
++        crate::menus::invoke(&mut restored, &ctx, "window.panel.actions", json!({})).unwrap();
++        assert!(restored.ui.dock.actions_rail_open);
++        return_actions_to_dock(&mut restored);
++        assert!(!restored.ui.dock.actions_in_rail);
++        assert_eq!(restored.ui.dock_tabs.history, 1);
++        assert!(restored.ui.dock.visible_tabs(Group::History, true).iter().any(|(i, _)| *i == 1));
++    }
++}
++
++#[test]
++fn locked_workspace_does_not_dock_actions_in_rail() {
++    let (mut app, _, _) = app_with_layers();
++    app.ui.panels.history = true;
++    app.ui.dock_tabs.history = 1;
++    app.session.prefs.edit(|p| p.workspace_locked = true);
++    let mut h = harness(app, vec2(1200.0, 900.0), ThemeKind::ProMedium);
++    let tab = last_strips(&h.ctx).into_iter().find(|s| s.group == Group::History).unwrap().tabs.into_iter().find(|(i, _)| *i == 1).unwrap().1.center();
++    let target = rail_rect(&h.ctx).unwrap().center();
++    drag(&mut h, tab, target);
++    assert!(!h.state().ui.dock.actions_in_rail);
++}
+ 
+ #[test]
+ fn last_expanded_group_fills_the_column() {
+@@ -95,7 +188,9 @@
+                 return;
+             }
+             crate::panels::right_dock(app, ui);
+-            egui::CentralPanel::default().show(ui, |_| {});
++            egui::CentralPanel::default().show(ui, |ui| {
++                ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("dock-test-canvas"), ui.max_rect()));
++            });
+         },
+         app,
+     );
+@@ -752,7 +847,9 @@
+                     return;
+                 }
+                 crate::panels::right_dock(app, ui);
+-                egui::CentralPanel::default().show(ui, |_| {});
++                egui::CentralPanel::default().show(ui, |ui| {
++                    ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("dock-test-canvas"), ui.max_rect()));
++                });
+             },
+             app,
+         );
+--- a/crates/ui-egui/src/file_ui.rs
++++ b/crates/ui-egui/src/file_ui.rs
+@@ -562,7 +562,7 @@
+ pub fn open_print(app: &mut PhotocraftApp) -> u64 {
+     let mut f = Map::new();
+     f.insert("__print".into(), json!(true));
+-    f.insert("__label".into(), json!("PhotoCraft Print Settings"));
++    f.insert("__label".into(), json!("qDesinger Print Settings"));
+     if let Some(Value::Object(m)) = app.session.file_menu.last_print.clone() {
+         f.extend(m);
+     }
+@@ -685,7 +685,7 @@
+                 "colorHandling",
+                 &[
+                     ("printerManages", tl!("Printer Manages Colors")),
+-                    ("photocraftManages", tl!("PhotoCraft Manages Colors")),
++                    ("photocraftManages", tl!("qDesinger Manages Colors")),
+                     ("noColorManagement", tl!("No Color Management")),
+                 ],
+                 240.0,
+--- a/crates/ui-egui/src/gpu_status.rs
++++ b/crates/ui-egui/src/gpu_status.rs
+@@ -61,7 +61,7 @@
+ /// Help › System Info: version, platform and the graphics state.
+ pub fn system_info(app: &PhotocraftApp) -> Vec<String> {
+     let mut v =
+-        vec![format!("PhotoCraft {}", photocraft_engine::build_info::long_version()), format!("Platform: {} {}", std::env::consts::OS, std::env::consts::ARCH)];
++        vec![format!("qDesinger {}", photocraft_engine::build_info::long_version()), format!("Platform: {} {}", std::env::consts::OS, std::env::consts::ARCH)];
+     v.extend(app.perf.gpu_info.lines());
+     v.extend(crate::monitor_status::summary_lines(app));
+     v
+@@ -101,7 +101,7 @@
+         crate::notices::post(
+             app,
+             "GPU retry scheduled",
+-            vec!["Save your work and restart PhotoCraft to retry GPU acceleration. CPU rendering remains active for this session.".into()],
++            vec!["Save your work and restart qDesinger to retry GPU acceleration. CPU rendering remains active for this session.".into()],
+             false,
+             None,
+         );
+@@ -122,7 +122,7 @@
+         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+         .show(ctx, |ui| {
+             ui.label(egui::RichText::new(tl!("GPU acceleration could not continue. Your documents are unchanged.")).color(t.warning));
+-            ui.label(tl!("PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter."));
++            ui.label(tl!("qDesinger is using the CPU image compositor. The window may still use your graphics adapter."));
+             ui.collapsing(tl!("Details"), |ui| {
+                 ui.label(&reason);
+             });
+--- a/crates/ui-egui/src/i18n/cs.tsv
++++ b/crates/ui-egui/src/i18n/cs.tsv
+@@ -731,7 +731,7 @@
+ 	Timeline	Časová osa
+ 	Tool Presets	Přednastavení nástrojů
+ 	Tools	Nástroje
+-	About PhotoCraft	O aplikaci PhotoCraft
++	About qDesinger	O aplikaci qDesinger
+ 	PhotoCraft Website	Web PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft na GitHubu
+ 	ArtCraft Website	Web ArtCraft
+@@ -794,7 +794,7 @@
+ 	All Caps	Verzálky
+ 	All Slices	Všechny řezy
+ 	All User Slices	Všechny uživatelské řezy
+-	All shortcuts reset to PhotoCraft defaults.	Všechny zkratky byly obnoveny na výchozí hodnoty PhotoCraftu.
++	All shortcuts reset to qDesinger defaults.	Všechny zkratky byly obnoveny na výchozí hodnoty qDesingeru.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Vždy použít přítlak pro krytí
+ 	Always use pressure for size	Vždy použít přítlak pro velikost
+@@ -1030,8 +1030,8 @@
+ 	Drop an image or PSD anywhere to open it.	Přetáhněte sem obrázek nebo PSD a otevře se.
+ 	Native file drag-and-drop is unavailable	Nativní přetahování souborů ve Waylandu není dostupné
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Nativní přetahování souborů ve Waylandu zatím není podporováno. Použijte Soubor › Otevřít, nebo obrázek zkopírujte ve správci souborů a vložte ho pomocí {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Chcete-li soubory přetahovat, spusťte PhotoCraft v XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Nebo nastavte Předvolby › Výkon › Zobrazovací server Linuxu na X11: PhotoCraft se pak vždy spustí v XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Chcete-li soubory přetahovat, spusťte qDesinger v XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Nebo nastavte Předvolby › Výkon › Zobrazovací server Linuxu na X11: qDesinger se pak vždy spustí v XWayland.
+ 	Edit › Paste	Úpravy › Vložit
+ 	Duplicate Layers…	Duplikovat vrstvy…
+ 	Duplicate style	Duplikovat styl
+@@ -1276,8 +1276,8 @@
+ 	Perspective Warp is not active	Perspektivní deformace není aktivní
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspektivní deformace: nakreslete roviny podle perspektivy obrazu a pak přepněte na deformaci
+ 	Photo Filter	Fotografický filtr
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	Barvy spravuje PhotoCraft
++	qDesinger	qDesinger
++	qDesinger Manages Colors	Barvy spravuje qDesinger
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — nativní editor obrázků s otevřeným zdrojovým kódem napsaný v jazyce Rust.
+ 	Pin Depth:	Hloubka špendlíku:
+ 	Pixel Length:	Délka v pixelech:
+@@ -1354,11 +1354,11 @@
+ 	Import Shortcuts…	Importovat zkratky…
+ 	Load a keyboard shortcut set saved as .kys	Načíst sadu klávesových zkratek uloženou jako .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Importováno zkratek: {n} ze souboru {file}. Klepnutím na OK je ponecháte.
+-	{n} commands are not in PhotoCraft.	Příkazů, které v PhotoCraftu nejsou: {n}.
++	{n} commands are not in qDesinger.	Příkazů, které v qDesingeru nejsou: {n}.
+ 	Keyboard shortcuts imported	Klávesové zkratky importovány
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Vaše sada klávesových zkratek {set} se zde používá: {n} zkratek se liší od výchozích. Zobrazí je Úpravy › Klávesové zkratky; Obnovit vše na výchozí to vrátí zpět.
+ 	Import keyboard shortcuts?	Importovat klávesové zkratky?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft na tomto počítači našel vaši sadu klávesových zkratek {set} z jiného editoru obrázků: {n} jejích zkratek se liší od zkratek PhotoCraftu. Importovat ji?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger na tomto počítači našel vaši sadu klávesových zkratek {set} z jiného editoru obrázků: {n} jejích zkratek se liší od zkratek qDesingeru. Importovat ji?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Úpravy › Klávesové zkratky › Obnovit vše na výchozí import vrátí zpět.
+ 	Don't Import	Neimportovat
+ 	The keyboard shortcut set was not imported: {error}	Sada klávesových zkratek nebyla importována: {error}
+@@ -1584,7 +1584,7 @@
+ 	Current Tool	Aktuální nástroj
+ 	Custom Shape Tool	Nástroj vlastní tvar
+ 	Cyans	Azurové
+-	Default PhotoCraft Size	Výchozí velikost PhotoCraft
++	Default qDesinger Size	Výchozí velikost qDesinger
+ 	Delete Workspace	Odstranit pracovní prostor
+ 	Diamond	Kosočtverec
+ 	Dimensions:	Rozměry:
+@@ -2018,7 +2018,7 @@
+ 	System Info	Informace o systému
+ 	More panels	Další panely
+ 	More documents	Další dokumenty
+-	These settings aren't available in PhotoCraft yet.	Tato nastavení zatím v aplikaci PhotoCraft nejsou k dispozici.
++	These settings aren't available in qDesinger yet.	Tato nastavení zatím v aplikaci qDesinger nejsou k dispozici.
+ 	Graphics	Grafika
+ 	Reset GPU Backend	Obnovit grafický backend
+ 	Applies at next launch.	Projeví se při příštím spuštění.
+@@ -2129,7 +2129,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatický režim používá dostupnou GPU a při chybě přejde na CPU.
+ 	Switched to CPU rendering	Přepnuto na vykreslování CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Akcelerace GPU nemohla pokračovat. Dokumenty zůstaly nezměněny.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft skládá obraz pomocí CPU. Okno může nadále používat grafický adaptér.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger skládá obraz pomocí CPU. Okno může nadále používat grafický adaptér.
+ 	Retry GPU requires a restart. Save your work first.	Opakování GPU vyžaduje restart. Nejprve uložte práci.
+ 	Keep Using CPU	Pokračovat s CPU
+ 	Retry GPU	Zkusit GPU znovu
+@@ -2350,7 +2350,7 @@
+ 	Color to Alpha…	Barva na alfu…
+ 	Transparency Threshold	Práh průhlednosti
+ 	Opacity Threshold	Práh krytí
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Výběr barvy obrazovky
++	qDesinger — Screen Color Picker	qDesinger — Výběr barvy obrazovky
+ 
+ 	Rasterize svg groups deeper than	Rasterizovat skupiny SVG hlubší než tato úroveň
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 vypne tento práh; skupiny SVG vnořené hlouběji než 100 úrovní se rastrují vždy.
+--- a/crates/ui-egui/src/i18n/de.tsv
++++ b/crates/ui-egui/src/i18n/de.tsv
+@@ -717,7 +717,7 @@
+ 	Timeline	Zeitleiste
+ 	Tool Presets	Werkzeugvorgaben
+ 	Tools	Werkzeuge
+-	About PhotoCraft	Über PhotoCraft
++	About qDesinger	Über qDesinger
+ 	PhotoCraft Website	PhotoCraft-Website
+ 	PhotoCraft on GitHub	PhotoCraft auf GitHub
+ 	ArtCraft Website	ArtCraft-Website
+@@ -771,7 +771,7 @@
+ 	All Caps	Großbuchstaben
+ 	All Slices	Alle Slices
+ 	All User Slices	Alle Benutzer-Slices
+-	All shortcuts reset to PhotoCraft defaults.	Alle Kurzbefehle wurden auf die PhotoCraft-Standards zurückgesetzt.
++	All shortcuts reset to qDesinger defaults.	Alle Kurzbefehle wurden auf die qDesinger-Standards zurückgesetzt.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Druck immer für Deckkraft verwenden
+ 	Always use pressure for size	Druck immer für Größe verwenden
+@@ -1010,8 +1010,8 @@
+ 	Drop an image or PSD anywhere to open it.	Ziehe ein Bild oder PSD an eine beliebige Stelle, um es zu öffnen.
+ 	Native file drag-and-drop is unavailable	Natives Ziehen und Ablegen von Dateien ist nicht verfügbar
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Natives Ziehen und Ablegen von Dateien wird unter Wayland noch nicht unterstützt. Nutze Datei › Öffnen oder kopiere das Bild im Dateimanager und füge es mit {paste} ein.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Um Dateien abzulegen, starte PhotoCraft unter XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Oder stelle Voreinstellungen › Leistung › Linux-Anzeigeserver auf X11: PhotoCraft startet dann immer unter XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Um Dateien abzulegen, starte qDesinger unter XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Oder stelle Voreinstellungen › Leistung › Linux-Anzeigeserver auf X11: qDesinger startet dann immer unter XWayland.
+ 	Edit › Paste	Bearbeiten › Einfügen
+ 	Duplicate Layers…	Ebenen duplizieren…
+ 	Duplicate style	Stil duplizieren
+@@ -1256,8 +1256,8 @@
+ 	Perspective Warp is not active	Perspektivische Verkrümmung ist nicht aktiv
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspektivische Verkrümmung: zeichne Flächen entlang der Bildperspektive, wechsle dann zu Verkrümmen
+ 	Photo Filter	Foto-Filter
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft verwaltet die Farben
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger verwaltet die Farben
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — ein nativer Open-Source-Bildeditor, geschrieben in Rust.
+ 	Pin Depth:	Pin-Tiefe:
+ 	Pixel Length:	Pixel-Länge:
+@@ -1334,11 +1334,11 @@
+ 	Import Shortcuts…	Tastaturbefehle importieren…
+ 	Load a keyboard shortcut set saved as .kys	Einen als .kys gespeicherten Tastaturbefehlssatz laden
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} Tastaturbefehle aus {file} importiert. Mit OK übernehmen.
+-	{n} commands are not in PhotoCraft.	{n} Befehle gibt es in PhotoCraft nicht.
++	{n} commands are not in qDesinger.	{n} Befehle gibt es in qDesinger nicht.
+ 	Keyboard shortcuts imported	Tastaturbefehle importiert
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Dein Tastaturbefehlssatz {set} wird hier verwendet: {n} Tastaturbefehle weichen von den Standardwerten ab. Bearbeiten › Tastaturbefehle zeigt sie; Alles auf Standardwerte zurücksetzen macht es rückgängig.
+ 	Import keyboard shortcuts?	Tastaturbefehle importieren?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft hat auf diesem Computer deinen Tastaturbefehlssatz {set} aus einem anderen Bildbearbeitungsprogramm gefunden: {n} seiner Tastaturbefehle weichen von denen in PhotoCraft ab. Importieren?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger hat auf diesem Computer deinen Tastaturbefehlssatz {set} aus einem anderen Bildbearbeitungsprogramm gefunden: {n} seiner Tastaturbefehle weichen von denen in qDesinger ab. Importieren?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Bearbeiten › Tastaturbefehle › Alles auf Standardwerte zurücksetzen macht einen Import rückgängig.
+ 	Don't Import	Nicht importieren
+ 	The keyboard shortcut set was not imported: {error}	Der Tastaturbefehlssatz wurde nicht importiert: {error}
+@@ -1559,7 +1559,7 @@
+ 	Current Tool	Aktuelles Werkzeug
+ 	Custom Shape Tool	Werkzeug für benutzerdefinierte Formen
+ 	Cyans	Cyantöne
+-	Default PhotoCraft Size	Standard-PhotoCraft-Größe
++	Default qDesinger Size	Standard-qDesinger-Größe
+ 	Delete Workspace	Arbeitsbereich löschen
+ 	Diamond	Raute
+ 	Dimensions:	Abmessungen:
+@@ -1985,7 +1985,7 @@
+ 	System Info	Systeminformationen
+ 	More panels	Weitere Bedienfelder
+ 	More documents	Weitere Dokumente
+-	These settings aren't available in PhotoCraft yet.	Diese Einstellungen gibt es in PhotoCraft noch nicht.
++	These settings aren't available in qDesinger yet.	Diese Einstellungen gibt es in qDesinger noch nicht.
+ 	Graphics	Grafik
+ 	Reset GPU Backend	GPU-Backend zurücksetzen
+ 	Applies at next launch.	Wird beim nächsten Start angewendet.
+@@ -2176,7 +2176,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatisch nutzt GPU-Beschleunigung, wenn verfügbar, und fällt bei Fehlern auf CPU-Rendering zurück.
+ 	Switched to CPU rendering	Auf CPU-Rendering umgeschaltet
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPU-Beschleunigung konnte nicht fortgesetzt werden. Deine Dokumente sind unverändert.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft nutzt den CPU-Bildkompositor. Das Fenster kann weiterhin deinen Grafikadapter verwenden.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger nutzt den CPU-Bildkompositor. Das Fenster kann weiterhin deinen Grafikadapter verwenden.
+ 	Retry GPU requires a restart. Save your work first.	GPU erneut versuchen erfordert einen Neustart. Speichere zuerst deine Arbeit.
+ 	Keep Using CPU	CPU weiter verwenden
+ 	Retry GPU	GPU erneut versuchen
+@@ -2388,7 +2388,7 @@
+ 	Color to Alpha…	Farbe zu Alpha…
+ 	Transparency Threshold	Transparenz-Schwellenwert
+ 	Opacity Threshold	Deckkraft-Schwellenwert
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Bildschirmfarbenauswahl
++	qDesinger — Screen Color Picker	qDesinger — Bildschirmfarbenauswahl
+ 
+ 	Rasterize svg groups deeper than	SVG-Gruppen ab dieser Tiefe rastern
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 schaltet diese Schwelle aus; SVG-Gruppen, die tiefer als 100 Ebenen verschachtelt sind, werden immer gerastert.
+--- a/crates/ui-egui/src/i18n/el.tsv
++++ b/crates/ui-egui/src/i18n/el.tsv
+@@ -166,7 +166,7 @@
+ 	Distort	Παραμόρφωση
+ 	Pixelate	Εικονοστοιχείωση
+ 	Render	Απόδοση
+-	About PhotoCraft	Πληροφορίες για το PhotoCraft
++	About qDesinger	Πληροφορίες για το qDesinger
+ 
+ # Consolidated Greek localization additions
+ 	Content-Aware Fill…	Γέμισμα βάσει περιεχομένου…
+@@ -655,7 +655,7 @@
+ 	Restart Required	Απαιτείται επανεκκίνηση
+ 	Restart	Επανεκκίνηση
+ 	Quit	Έξοδος
+-	Quit PhotoCraft	Έξοδος από το PhotoCraft
++	Quit qDesinger	Έξοδος από το qDesinger
+ 	Close Window	Κλείσιμο παραθύρου
+ 	New Window	Νέο παράθυρο
+ 	Open Image	Άνοιγμα εικόνας
+@@ -745,7 +745,7 @@
+ 	Pattern Size	Μέγεθος μοτίβου
+ 	Perspective Warp is not active	Ο μετασχηματισμός προοπτικής δεν είναι ενεργός
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Μετασχηματισμός προοπτικής: σχεδιάστε επίπεδα σύμφωνα με την προοπτική της εικόνας και έπειτα επιλέξτε Παραμόρφωση
+-	PhotoCraft Manages Colors	Διαχείριση χρωμάτων από το PhotoCraft
++	qDesinger Manages Colors	Διαχείριση χρωμάτων από το qDesinger
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — εγγενής εφαρμογή επεξεργασίας εικόνας ανοικτού κώδικα, γραμμένη σε Rust.
+ 	Pixels/Centimeter	Εικονοστοιχεία/εκατοστό
+ 	Pixels/Inch	Εικονοστοιχεία/ίντσα
+@@ -1048,7 +1048,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Η αυτόματη λειτουργία χρησιμοποιεί επιτάχυνση GPU όταν είναι διαθέσιμη και επιστρέφει στην CPU σε περίπτωση σφάλματος.
+ 	Switched to CPU rendering	Έγινε μετάβαση σε απόδοση μέσω CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Η επιτάχυνση GPU δεν μπόρεσε να συνεχιστεί. Τα έγγραφά σας δεν έχουν αλλάξει.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	Το PhotoCraft χρησιμοποιεί σύνθεση εικόνας μέσω CPU. Το παράθυρο μπορεί να εξακολουθεί να χρησιμοποιεί την κάρτα γραφικών.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	Το qDesinger χρησιμοποιεί σύνθεση εικόνας μέσω CPU. Το παράθυρο μπορεί να εξακολουθεί να χρησιμοποιεί την κάρτα γραφικών.
+ 	Retry GPU requires a restart. Save your work first.	Η νέα προσπάθεια χρήσης GPU απαιτεί επανεκκίνηση. Αποθηκεύστε πρώτα την εργασία σας.
+ 	Keep Using CPU	Συνέχεια με CPU
+ 	Retry GPU	Νέα προσπάθεια χρήσης GPU
+@@ -1955,7 +1955,7 @@
+ 	All Caps	Όλα κεφαλαία
+ 	All Slices	Όλες οι τομές
+ 	All User Slices	Όλες οι τομές χρήστη
+-	All shortcuts reset to PhotoCraft defaults.	Όλες οι συντομεύσεις επανήλθαν στις προεπιλογές του PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Όλες οι συντομεύσεις επανήλθαν στις προεπιλογές του qDesinger.
+ 	Alternates for Current Selection	Εναλλακτικοί χαρακτήρες για την τρέχουσα επιλογή
+ 	Altitude	Υψόμετρο
+ 	Always	Πάντα
+@@ -2631,7 +2631,7 @@
+ 	Move to	Μετακίνηση σε
+ 	NTSC Colors	Χρώματα NTSC
+ 	Name:	Όνομα:
+-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Η μεταφορά και απόθεση αρχείων δεν υποστηρίζεται ακόμη στο Wayland. Χρησιμοποιήστε Αρχείο › Άνοιγμα ή εκτελέστε το PhotoCraft μέσω XWayland με `WAYLAND_DISPLAY= photocraft`.
++	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run qDesinger under XWayland with `WAYLAND_DISPLAY= photocraft`.	Η μεταφορά και απόθεση αρχείων δεν υποστηρίζεται ακόμη στο Wayland. Χρησιμοποιήστε Αρχείο › Άνοιγμα ή εκτελέστε το qDesinger μέσω XWayland με `WAYLAND_DISPLAY= photocraft`.
+ 	Nearest Neighbor	Πλησιέστερος γείτονας
+ 	Nearest Neighbor (hard edges)	Πλησιέστερος γείτονας (σκληρές ακμές)
+ 	Nearest neighbor	Πλησιέστερος γείτονας
+@@ -2829,11 +2829,11 @@
+ 	Import Shortcuts…	Εισαγωγή συντομεύσεων…
+ 	Load a keyboard shortcut set saved as .kys	Φόρτωση ενός σετ συντομεύσεων πληκτρολογίου αποθηκευμένου ως .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Εισήχθησαν {n} συντομεύσεις από το {file}. Πατήστε OK για να τις κρατήσετε.
+-	{n} commands are not in PhotoCraft.	{n} εντολές δεν υπάρχουν στο PhotoCraft.
++	{n} commands are not in qDesinger.	{n} εντολές δεν υπάρχουν στο qDesinger.
+ 	Keyboard shortcuts imported	Οι συντομεύσεις πληκτρολογίου εισήχθησαν
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Το σετ συντομεύσεων πληκτρολογίου {set} χρησιμοποιείται εδώ: {n} συντομεύσεις διαφέρουν από τις προεπιλογές. Το Επεξεργασία › Συντομεύσεις πληκτρολογίου τις δείχνει· η Επαναφορά όλων στις προεπιλογές το αναιρεί.
+ 	Import keyboard shortcuts?	Εισαγωγή συντομεύσεων πληκτρολογίου;
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	Το PhotoCraft βρήκε σε αυτόν τον υπολογιστή το σετ συντομεύσεων πληκτρολογίου {set} από άλλο πρόγραμμα επεξεργασίας εικόνας: {n} συντομεύσεις του διαφέρουν από του PhotoCraft. Να γίνει εισαγωγή;
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	Το qDesinger βρήκε σε αυτόν τον υπολογιστή το σετ συντομεύσεων πληκτρολογίου {set} από άλλο πρόγραμμα επεξεργασίας εικόνας: {n} συντομεύσεις του διαφέρουν από του qDesinger. Να γίνει εισαγωγή;
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Το Επεξεργασία › Συντομεύσεις πληκτρολογίου › Επαναφορά όλων στις προεπιλογές αναιρεί μια εισαγωγή.
+ 	Don't Import	Χωρίς εισαγωγή
+ 	The keyboard shortcut set was not imported: {error}	Το σετ συντομεύσεων πληκτρολογίου δεν εισήχθη: {error}
+@@ -3058,7 +3058,7 @@
+ 	Text Position:	Θέση κειμένου:
+ 	Texture Each Tip	Υφή σε κάθε αποτύπωμα πινέλου
+ 	Texturizer	Εφαρμογή υφής
+-	These settings aren't available in PhotoCraft yet.	Αυτές οι ρυθμίσεις δεν είναι ακόμη διαθέσιμες στο PhotoCraft.
++	These settings aren't available in qDesinger yet.	Αυτές οι ρυθμίσεις δεν είναι ακόμη διαθέσιμες στο qDesinger.
+ 	Thin	Λεπτό
+ 	Threshold Level	Στάθμη κατωφλίου
+ 	Thumbnail size (smallest: list)	Μέγεθος μικρογραφίας (μικρότερο: λίστα)
+@@ -3332,7 +3332,7 @@
+ 	New Swatch Group…	Νέα ομάδα δειγμάτων χρωμάτων…
+ 	New Swatch…	Νέο δείγμα χρώματος…
+ 	OpenType	OpenType
+-	PhotoCraft	PhotoCraft
++	qDesinger	qDesinger
+ 	Pupil Size	Μέγεθος κόρης
+ 	Replace Swatches…	Αντικατάσταση δειγμάτων χρωμάτων…
+ 	Reset Swatches	Επαναφορά δειγμάτων χρωμάτων
+@@ -3375,7 +3375,7 @@
+ 	Color…	Χρώμα…
+ 	Cone (Inverted)	Κώνος (αντεστραμμένος)
+ 	Could not open	Δεν ήταν δυνατό το άνοιγμα
+-	Default PhotoCraft Size	Προεπιλεγμένο μέγεθος PhotoCraft
++	Default qDesinger Size	Προεπιλεγμένο μέγεθος qDesinger
+ 	Diagonal (Descending)	Διαγώνιος (φθίνουσα)
+ 	DirectX 12	DirectX 12
+ 	Display p3	Display P3
+@@ -3405,8 +3405,8 @@
+ 	Red Eye Tool	Κόκκινα μάτια (Red Eye Tool)
+ 	Seafoam	Θαλασσί
+ 	Srgb	sRGB
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Για να αποθέσετε αρχεία, εκκινήστε το PhotoCraft μέσω XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Ή ορίστε Προτιμήσεις › Επιδόσεις › Διακομιστής οθόνης Linux σε X11: το PhotoCraft θα εκκινεί τότε πάντα μέσω XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Για να αποθέσετε αρχεία, εκκινήστε το qDesinger μέσω XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Ή ορίστε Προτιμήσεις › Επιδόσεις › Διακομιστής οθόνης Linux σε X11: το qDesinger θα εκκινεί τότε πάντα μέσω XWayland.
+ 	Vulkan	Vulkan
+ 	WebP (lossless)	WebP (χωρίς απώλειες)
+ 	Webp	WebP
+@@ -3458,7 +3458,7 @@
+ 	Color to Alpha…	Χρώμα σε άλφα…
+ 	Transparency Threshold	Κατώφλι διαφάνειας
+ 	Opacity Threshold	Κατώφλι αδιαφάνειας
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Επιλογή χρώματος οθόνης
++	qDesinger — Screen Color Picker	qDesinger — Επιλογή χρώματος οθόνης
+ 
+ 	Rasterize svg groups deeper than	Ραστεροποίηση ομάδων SVG πέρα από αυτό το βάθος
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	Το 0 απενεργοποιεί αυτό το όριο· ομάδες SVG με ένθεση βαθύτερη από 100 επίπεδα ραστεροποιούνται πάντα.
+--- a/crates/ui-egui/src/i18n/es.tsv
++++ b/crates/ui-egui/src/i18n/es.tsv
+@@ -723,7 +723,7 @@
+ 	Timeline	Línea de tiempo
+ 	Tool Presets	Preajustes de herramienta
+ 	Tools	Herramientas
+-	About PhotoCraft	Acerca de PhotoCraft
++	About qDesinger	Acerca de qDesinger
+ 	PhotoCraft Website	Sitio web de PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft en GitHub
+ 	ArtCraft Website	Sitio web de ArtCraft
+@@ -779,7 +779,7 @@
+ 	All Caps	Todo en mayúsculas
+ 	All Slices	Todas las secciones
+ 	All User Slices	Todas las secciones de usuario
+-	All shortcuts reset to PhotoCraft defaults.	Se restablecieron todos los atajos a los valores predeterminados de PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Se restablecieron todos los atajos a los valores predeterminados de qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Usar siempre la presión para la opacidad
+ 	Always use pressure for size	Usar siempre la presión para el tamaño
+@@ -1015,8 +1015,8 @@
+ 	Drop an image or PSD anywhere to open it.	Suelte una imagen o un PSD en cualquier lugar para abrirlo.
+ 	Native file drag-and-drop is unavailable	El arrastrar y soltar archivos de forma nativa no está disponible en Wayland
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	El arrastrar y soltar archivos de forma nativa aún no está disponible en Wayland. Usa Archivo › Abrir, o copia la imagen en tu gestor de archivos y pégala con {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Para soltar archivos, inicia PhotoCraft bajo XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	O establece Preferencias › Rendimiento › Servidor de pantalla de Linux en X11: PhotoCraft se iniciará siempre bajo XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Para soltar archivos, inicia qDesinger bajo XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	O establece Preferencias › Rendimiento › Servidor de pantalla de Linux en X11: qDesinger se iniciará siempre bajo XWayland.
+ 	Edit › Paste	Edición › Pegar
+ 	Duplicate Layers…	Duplicar capas…
+ 	Duplicate style	Duplicar estilo
+@@ -1261,8 +1261,8 @@
+ 	Perspective Warp is not active	La deformación en perspectiva no está activa
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Deformación en perspectiva: dibuje planos siguiendo la perspectiva de la imagen y luego cambie a Deformar
+ 	Photo Filter	Filtro fotográfico
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft gestiona el color
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger gestiona el color
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — un editor de imágenes nativo y de código abierto escrito en Rust.
+ 	Pin Depth:	Profundidad del pin:
+ 	Pixel Length:	Longitud en píxeles:
+@@ -1339,11 +1339,11 @@
+ 	Import Shortcuts…	Importar atajos…
+ 	Load a keyboard shortcut set saved as .kys	Cargar un conjunto de atajos de teclado guardado como .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Se importaron {n} atajos de {file}. Haz clic en OK para conservarlos.
+-	{n} commands are not in PhotoCraft.	{n} comandos no existen en PhotoCraft.
++	{n} commands are not in qDesinger.	{n} comandos no existen en qDesinger.
+ 	Keyboard shortcuts imported	Atajos de teclado importados
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Tu conjunto de atajos de teclado {set} se usa aquí: {n} atajos difieren de los predeterminados. Edición › Atajos de teclado los muestra; Restablecer todo a valores predeterminados lo deshace.
+ 	Import keyboard shortcuts?	¿Importar atajos de teclado?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft encontró en este equipo tu conjunto de atajos de teclado {set} de otro editor de imágenes: {n} de sus atajos difieren de los de PhotoCraft. ¿Importarlo?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger encontró en este equipo tu conjunto de atajos de teclado {set} de otro editor de imágenes: {n} de sus atajos difieren de los de qDesinger. ¿Importarlo?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Edición › Atajos de teclado › Restablecer todo a valores predeterminados deshace una importación.
+ 	Don't Import	No importar
+ 	The keyboard shortcut set was not imported: {error}	No se importó el conjunto de atajos de teclado: {error}
+@@ -1567,7 +1567,7 @@
+ 	Current Tool	Herramienta actual
+ 	Custom Shape Tool	Herramienta Forma personalizada
+ 	Cyans	Cianes
+-	Default PhotoCraft Size	Tamaño predeterminado de PhotoCraft
++	Default qDesinger Size	Tamaño predeterminado de qDesinger
+ 	Delete Workspace	Eliminar espacio de trabajo
+ 	Diamond	Diamante
+ 	Dimensions:	Dimensiones:
+@@ -2001,7 +2001,7 @@
+ 	System Info	Información del sistema
+ 	More panels	Más paneles
+ 	More documents	Más documentos
+-	These settings aren't available in PhotoCraft yet.	Estos ajustes aún no están disponibles en PhotoCraft.
++	These settings aren't available in qDesinger yet.	Estos ajustes aún no están disponibles en qDesinger.
+ 	Graphics	Gráficos
+ 	Reset GPU Backend	Restablecer el backend de GPU
+ 	Applies at next launch.	Se aplicará en el próximo inicio.
+@@ -2198,7 +2198,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automático utiliza la GPU cuando está disponible y cambia a la CPU si hay errores.
+ 	Switched to CPU rendering	Se cambió al renderizado por CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	La aceleración GPU no pudo continuar. Los documentos no han cambiado.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft compone las imágenes en la CPU. La ventana aún puede usar el adaptador gráfico.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger compone las imágenes en la CPU. La ventana aún puede usar el adaptador gráfico.
+ 	Retry GPU requires a restart. Save your work first.	Reintentar la GPU requiere reiniciar. Guarda primero tu trabajo.
+ 	Keep Using CPU	Seguir usando CPU
+ 	Retry GPU	Reintentar GPU
+@@ -2417,7 +2417,7 @@
+ 	Color to Alpha…	Color a alfa…
+ 	Transparency Threshold	Umbral de transparencia
+ 	Opacity Threshold	Umbral de opacidad
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Selector de color de pantalla
++	qDesinger — Screen Color Picker	qDesinger — Selector de color de pantalla
+ 
+ 	Rasterize svg groups deeper than	Rasterizar grupos SVG con mayor profundidad
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 desactiva este umbral; los grupos SVG anidados a más de 100 niveles siempre se rasterizan.
+--- a/crates/ui-egui/src/i18n/fr.tsv
++++ b/crates/ui-egui/src/i18n/fr.tsv
+@@ -714,7 +714,7 @@
+ 	Timeline	Montage
+ 	Tool Presets	Préréglages d'outils
+ 	Tools	Outils
+-	About PhotoCraft	À propos de PhotoCraft
++	About qDesinger	À propos de qDesinger
+ 	PhotoCraft Website	Site web de PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft sur GitHub
+ 	ArtCraft Website	Site web d'ArtCraft
+@@ -768,7 +768,7 @@
+ 	All Caps	Tout en capitales
+ 	All Slices	Toutes les tranches
+ 	All User Slices	Toutes les tranches utilisateur
+-	All shortcuts reset to PhotoCraft defaults.	Tous les raccourcis ont été réinitialisés aux valeurs par défaut de PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Tous les raccourcis ont été réinitialisés aux valeurs par défaut de qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Toujours utiliser la pression pour l'opacité
+ 	Always use pressure for size	Toujours utiliser la pression pour la taille
+@@ -1244,8 +1244,8 @@
+ 	Perspective Warp is not active	La déformation de la perspective n'est pas active
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Déformation de la perspective : tracez des plans selon la perspective de l'image, puis passez à Déformer
+ 	Photo Filter	Filtre photo
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft gère les couleurs
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger gère les couleurs
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — un éditeur d'images natif et libre, écrit en Rust.
+ 	Pin Depth:	Profondeur de l'épingle :
+ 	Pixel Length:	Longueur en pixels :
+@@ -1322,11 +1322,11 @@
+ 	Import Shortcuts…	Importer des raccourcis…
+ 	Load a keyboard shortcut set saved as .kys	Charger un jeu de raccourcis clavier enregistré en .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} raccourcis importés depuis {file}. Cliquez sur OK pour les conserver.
+-	{n} commands are not in PhotoCraft.	{n} commandes n'existent pas dans PhotoCraft.
++	{n} commands are not in qDesinger.	{n} commandes n'existent pas dans qDesinger.
+ 	Keyboard shortcuts imported	Raccourcis clavier importés
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Votre jeu de raccourcis clavier {set} est utilisé ici : {n} raccourcis diffèrent des valeurs par défaut. Édition › Raccourcis clavier les affiche ; Tout rétablir par défaut annule l'import.
+ 	Import keyboard shortcuts?	Importer les raccourcis clavier ?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft a trouvé sur cet ordinateur votre jeu de raccourcis clavier {set} provenant d'un autre éditeur d'images : {n} de ses raccourcis diffèrent de ceux de PhotoCraft. L'importer ?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger a trouvé sur cet ordinateur votre jeu de raccourcis clavier {set} provenant d'un autre éditeur d'images : {n} de ses raccourcis diffèrent de ceux de qDesinger. L'importer ?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Édition › Raccourcis clavier › Tout rétablir par défaut annule un import.
+ 	Don't Import	Ne pas importer
+ 	The keyboard shortcut set was not imported: {error}	Le jeu de raccourcis clavier n'a pas été importé : {error}
+@@ -1545,7 +1545,7 @@
+ 	Current Tool	Outil actif
+ 	Custom Shape Tool	Outil Forme personnalisée
+ 	Cyans	Cyans
+-	Default PhotoCraft Size	Taille PhotoCraft par défaut
++	Default qDesinger Size	Taille qDesinger par défaut
+ 	Delete Workspace	Supprimer l'espace de travail
+ 	Diamond	Losange
+ 	Dimensions:	Dimensions :
+@@ -1967,7 +1967,7 @@
+ 	System Info	Informations système
+ 	More panels	Autres panneaux
+ 	More documents	Autres documents
+-	These settings aren't available in PhotoCraft yet.	Ces paramètres ne sont pas encore disponibles dans PhotoCraft.
++	These settings aren't available in qDesinger yet.	Ces paramètres ne sont pas encore disponibles dans qDesinger.
+ 	Graphics	Graphismes
+ 	Reset GPU Backend	Réinitialiser le moteur GPU
+ 	Applies at next launch.	Prend effet au prochain démarrage.
+@@ -2538,8 +2538,8 @@
+ 	Use Global Light	Utiliser la lumière globale
+ 	Native file drag-and-drop is unavailable	Le glisser-déposer natif de fichiers n'est pas disponible
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Le glisser-déposer natif de fichiers n'est pas encore pris en charge sous Wayland. Utilisez Fichier › Ouvrir, ou copiez l'image dans votre gestionnaire de fichiers et collez-la avec {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Pour déposer des fichiers, lancez PhotoCraft sous XWayland : `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Ou réglez Préférences › Performances › Serveur d'affichage Linux sur X11 : PhotoCraft démarre alors toujours sous XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Pour déposer des fichiers, lancez qDesinger sous XWayland : `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Ou réglez Préférences › Performances › Serveur d'affichage Linux sur X11 : qDesinger démarre alors toujours sous XWayland.
+ 	Edit › Paste	Édition › Coller
+ 	Use File › Open, or paste a copied image with {paste}.	Utilisez Fichier › Ouvrir, ou collez une image copiée avec {paste}.
+ 	Mixer Brush Tool	Outil Pinceau mélangeur
+@@ -2554,7 +2554,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Le mode automatique utilise l'accélération GPU lorsqu'elle est disponible et repasse au rendu CPU en cas d'erreur.
+ 	Switched to CPU rendering	Passage au rendu CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	L'accélération GPU n'a pas pu continuer. Vos documents sont intacts.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft utilise le compositeur d'images CPU. La fenêtre peut encore utiliser votre carte graphique.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger utilise le compositeur d'images CPU. La fenêtre peut encore utiliser votre carte graphique.
+ 	Retry GPU requires a restart. Save your work first.	Réessayer le GPU nécessite un redémarrage. Enregistrez votre travail au préalable.
+ 	Keep Using CPU	Continuer avec le CPU
+ 	Retry GPU	Réessayer le GPU
+@@ -2768,7 +2768,7 @@
+ 	Color to Alpha…	Couleur vers alpha…
+ 	Transparency Threshold	Seuil de transparence
+ 	Opacity Threshold	Seuil d'opacité
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Sélecteur de couleur d'écran
++	qDesinger — Screen Color Picker	qDesinger — Sélecteur de couleur d'écran
+ 
+ 	Rasterize svg groups deeper than	Pixelliser les groupes SVG au-delà de cette profondeur
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 désactive ce seuil ; les groupes SVG imbriqués sur plus de 100 niveaux sont toujours pixellisés.
+--- a/crates/ui-egui/src/i18n/id.tsv
++++ b/crates/ui-egui/src/i18n/id.tsv
+@@ -707,7 +707,7 @@
+ 	Timeline	Timeline
+ 	Tool Presets	Preset Alat
+ 	Tools	Alat
+-	About PhotoCraft	Tentang PhotoCraft
++	About qDesinger	Tentang qDesinger
+ 	PhotoCraft Website	Situs Web PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft di GitHub
+ 	ArtCraft Website	Situs Web ArtCraft
+@@ -761,7 +761,7 @@
+ 	All Caps	Huruf Kapital Semua
+ 	All Slices	Semua Slice
+ 	All User Slices	Semua Slice Pengguna
+-	All shortcuts reset to PhotoCraft defaults.	Semua pintasan direset ke default PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Semua pintasan direset ke default qDesinger.
+ 	Alt	Alt
+ 	Alt-click to define a source point to clone from	Alt-klik untuk menentukan titik sumber yang mau di-clone
+ 	Always use pressure for opacity	Selalu pakai tekanan untuk opasitas
+@@ -1238,8 +1238,8 @@
+ 	Perspective Warp is not active	Perspective Warp tidak aktif
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspective Warp: gambar bidang mengikuti perspektif gambar, lalu pindah ke Warp
+ 	Photo Filter	Filter Foto
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft Mengelola Warna
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger Mengelola Warna
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — editor gambar native open-source yang ditulis dengan Rust.
+ 	Pin Depth:	Kedalaman Pin:
+ 	Pixel Length:	Panjang Piksel:
+@@ -1316,11 +1316,11 @@
+ 	Import Shortcuts…	Impor Pintasan…
+ 	Load a keyboard shortcut set saved as .kys	Muat set pintasan keyboard yang disimpan sebagai .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} pintasan diimpor dari {file}. Klik OK untuk menyimpannya.
+-	{n} commands are not in PhotoCraft.	{n} perintah tidak ada di PhotoCraft.
++	{n} commands are not in qDesinger.	{n} perintah tidak ada di qDesinger.
+ 	Keyboard shortcuts imported	Pintasan keyboard diimpor
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Set pintasan keyboard Anda {set} dipakai di sini: {n} pintasan berbeda dari bawaan. Edit › Pintasan Keyboard menampilkannya; Setel Ulang Semua ke Bawaan membatalkannya.
+ 	Import keyboard shortcuts?	Impor pintasan keyboard?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft menemukan set pintasan keyboard Anda {set} dari editor gambar lain di komputer ini: {n} pintasannya berbeda dari PhotoCraft. Impor?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger menemukan set pintasan keyboard Anda {set} dari editor gambar lain di komputer ini: {n} pintasannya berbeda dari qDesinger. Impor?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Edit › Pintasan Keyboard › Setel Ulang Semua ke Bawaan membatalkan impor.
+ 	Don't Import	Jangan Impor
+ 	The keyboard shortcut set was not imported: {error}	Set pintasan keyboard tidak diimpor: {error}
+@@ -1539,7 +1539,7 @@
+ 	Current Tool	Alat Saat Ini
+ 	Custom Shape Tool	Alat Bentuk Kustom
+ 	Cyans	Cyan
+-	Default PhotoCraft Size	Ukuran Default PhotoCraft
++	Default qDesinger Size	Ukuran Default qDesinger
+ 	Delete Workspace	Hapus Ruang Kerja
+ 	Diamond	Diamond
+ 	Dimensions:	Dimensi:
+@@ -1961,7 +1961,7 @@
+ 	System Info	Info Sistem
+ 	More panels	Panel lainnya
+ 	More documents	Dokumen lainnya
+-	These settings aren't available in PhotoCraft yet.	Pengaturan ini belum tersedia di PhotoCraft.
++	These settings aren't available in qDesinger yet.	Pengaturan ini belum tersedia di qDesinger.
+ 	Graphics	Grafis
+ 	Reset GPU Backend	Reset Backend GPU
+ 	Applies at next launch.	Berlaku saat dibuka berikutnya.
+@@ -2527,8 +2527,8 @@
+ 	Use Global Light	Gunakan Cahaya Global
+ 	Native file drag-and-drop is unavailable	Seret dan lepas berkas native tidak tersedia
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Seret dan lepas berkas native belum didukung di Wayland. Gunakan Berkas › Buka, atau salin gambar di pengelola berkas lalu tempel dengan {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Untuk menjatuhkan berkas, jalankan PhotoCraft di XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Atau atur Preferensi › Performa › Server tampilan Linux ke X11: PhotoCraft lalu selalu berjalan di XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Untuk menjatuhkan berkas, jalankan qDesinger di XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Atau atur Preferensi › Performa › Server tampilan Linux ke X11: qDesinger lalu selalu berjalan di XWayland.
+ 	Edit › Paste	Edit › Tempel
+ 	Use File › Open, or paste a copied image with {paste}.	Gunakan Berkas › Buka, atau tempel gambar yang disalin dengan {paste}.
+ 	Mixer Brush Tool	Alat Kuas Pencampur
+@@ -2565,7 +2565,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Mode otomatis memakai akselerasi GPU bila tersedia dan beralih ke rendering CPU jika terjadi galat.
+ 	Switched to CPU rendering	Beralih ke rendering CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Akselerasi GPU tidak dapat dilanjutkan. Dokumen Anda tidak berubah.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft menggunakan kompositor gambar CPU. Jendela mungkin masih menggunakan adaptor grafis Anda.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger menggunakan kompositor gambar CPU. Jendela mungkin masih menggunakan adaptor grafis Anda.
+ 	Retry GPU requires a restart. Save your work first.	Mencoba GPU lagi memerlukan mulai ulang. Simpan pekerjaan Anda terlebih dahulu.
+ 	Keep Using CPU	Tetap Gunakan CPU
+ 	Retry GPU	Coba GPU Lagi
+@@ -2755,7 +2755,7 @@
+ 	Color to Alpha…	Warna ke Alpha…
+ 	Transparency Threshold	Ambang transparansi
+ 	Opacity Threshold	Ambang opasitas
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Pemilih Warna Layar
++	qDesinger — Screen Color Picker	qDesinger — Pemilih Warna Layar
+ 
+ 	Rasterize svg groups deeper than	Rasterisasi grup SVG yang lebih dalam dari ini
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 menonaktifkan ambang ini; grup SVG yang bersarang lebih dari 100 tingkat selalu dirasterisasi.
+--- a/crates/ui-egui/src/i18n/it.tsv
++++ b/crates/ui-egui/src/i18n/it.tsv
+@@ -721,7 +721,7 @@
+ 	Timeline	Timeline
+ 	Tool Presets	Predefiniti strumento
+ 	Tools	Strumenti
+-	About PhotoCraft	Informazioni su PhotoCraft
++	About qDesinger	Informazioni su qDesinger
+ 	PhotoCraft Website	Sito web PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft su GitHub
+ 	ArtCraft Website	Sito web ArtCraft
+@@ -777,7 +777,7 @@
+ 	All Caps	Tutto maiuscolo
+ 	All Slices	Tutte le sezioni
+ 	All User Slices	Tutte le sezioni utente
+-	All shortcuts reset to PhotoCraft defaults.	Tutte le scorciatoie ripristinate ai default di PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Tutte le scorciatoie ripristinate ai default di qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Usa sempre pressione per opacità
+ 	Always use pressure for size	Usa sempre pressione per dimensione
+@@ -1014,8 +1014,8 @@
+ 	Drop an image or PSD anywhere to open it.	Trascina un'immagine o PSD ovunque per aprirlo.
+ 	Native file drag-and-drop is unavailable	Il drag-and-drop nativo file non è disponibile su Wayland
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Il drag-and-drop nativo non è ancora supportato su Wayland. Usa File › Apri, oppure copia l'immagine nel file manager e incollala con {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Per trascinare file, avvia PhotoCraft sotto XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Oppure imposta Preferenze › Prestazioni › Server grafico Linux su X11: PhotoCraft partirà sempre sotto XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Per trascinare file, avvia qDesinger sotto XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Oppure imposta Preferenze › Prestazioni › Server grafico Linux su X11: qDesinger partirà sempre sotto XWayland.
+ 	Edit › Paste	Modifica › Incolla
+ 	Duplicate Layers…	Duplica livelli…
+ 	Duplicate style	Duplica stile
+@@ -1260,8 +1260,8 @@
+ 	Perspective Warp is not active	Altera prospettiva non attiva
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Altera prospettiva: disegna piani lungo la prospettiva immagine, poi passa ad Altera
+ 	Photo Filter	Filtro fotografico
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft gestisce i colori
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger gestisce i colori
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — editor immagini nativo open-source scritto in Rust.
+ 	Pin Depth:	Profondità pin:
+ 	Pixel Length:	Lunghezza pixel:
+@@ -1338,11 +1338,11 @@
+ 	Import Shortcuts…	Importa scelte rapide…
+ 	Load a keyboard shortcut set saved as .kys	Carica un set di scelte rapide da tastiera salvato come .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Importate {n} scelte rapide da {file}. Fai clic su OK per conservarle.
+-	{n} commands are not in PhotoCraft.	{n} comandi non esistono in PhotoCraft.
++	{n} commands are not in qDesinger.	{n} comandi non esistono in qDesinger.
+ 	Keyboard shortcuts imported	Scelte rapide da tastiera importate
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Il tuo set di scelte rapide da tastiera {set} è in uso qui: {n} scelte rapide differiscono dai valori predefiniti. Modifica › Scelte rapide da tastiera le mostra; Ripristina tutto ai valori predefiniti annulla l'importazione.
+ 	Import keyboard shortcuts?	Importare le scelte rapide da tastiera?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft ha trovato su questo computer il tuo set di scelte rapide da tastiera {set} di un altro editor di immagini: {n} delle sue scelte rapide differiscono da quelle di PhotoCraft. Importarlo?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger ha trovato su questo computer il tuo set di scelte rapide da tastiera {set} di un altro editor di immagini: {n} delle sue scelte rapide differiscono da quelle di qDesinger. Importarlo?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Modifica › Scelte rapide da tastiera › Ripristina tutto ai valori predefiniti annulla un'importazione.
+ 	Don't Import	Non importare
+ 	The keyboard shortcut set was not imported: {error}	Il set di scelte rapide da tastiera non è stato importato: {error}
+@@ -1565,7 +1565,7 @@
+ 	Current Tool	Strumento corrente
+ 	Custom Shape Tool	Strumento Forma personale
+ 	Cyans	Ciano
+-	Default PhotoCraft Size	Dimensione predefinita PhotoCraft
++	Default qDesinger Size	Dimensione predefinita qDesinger
+ 	Delete Workspace	Elimina area di lavoro
+ 	Diamond	Diamante
+ 	Dimensions:	Dimensioni:
+@@ -1999,7 +1999,7 @@
+ 	System Info	Info sistema
+ 	More panels	Altri pannelli
+ 	More documents	Altri documenti
+-	These settings aren't available in PhotoCraft yet.	Queste impostazioni non sono ancora disponibili in PhotoCraft.
++	These settings aren't available in qDesinger yet.	Queste impostazioni non sono ancora disponibili in qDesinger.
+ 	Graphics	Grafica
+ 	Reset GPU Backend	Reimposta backend GPU
+ 	Applies at next launch.	Si applica al prossimo avvio.
+@@ -2200,7 +2200,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatico usa accelerazione GPU quando disponibile e ripiega su CPU in caso di errori.
+ 	Switched to CPU rendering	Passato a rendering CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Accelerazione GPU non ha potuto continuare. I documenti sono invariati.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft sta componendo immagini su CPU. La finestra può ancora usare adattatore grafico.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger sta componendo immagini su CPU. La finestra può ancora usare adattatore grafico.
+ 	Retry GPU requires a restart. Save your work first.	Riprovare GPU richiede riavvio. Salva prima il lavoro.
+ 	Keep Using CPU	Continua su CPU
+ 	Retry GPU	Riprova GPU
+@@ -2419,7 +2419,7 @@
+ 	Color to Alpha…	Colore ad alfa…
+ 	Transparency Threshold	Soglia di trasparenza
+ 	Opacity Threshold	Soglia di opacità
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Selettore colore schermo
++	qDesinger — Screen Color Picker	qDesinger — Selettore colore schermo
+ 
+ 	Rasterize svg groups deeper than	Rasterizza i gruppi SVG oltre questa profondità
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 disattiva questa soglia; i gruppi SVG annidati oltre 100 livelli vengono sempre rasterizzati.
+--- a/crates/ui-egui/src/i18n/ja.tsv
++++ b/crates/ui-egui/src/i18n/ja.tsv
+@@ -726,7 +726,7 @@
+ 	Timeline	タイムライン
+ 	Tool Presets	ツールプリセット
+ 	Tools	ツール
+-	About PhotoCraft	PhotoCraft について
++	About qDesinger	qDesinger について
+ 	PhotoCraft Website	PhotoCraft の Web サイト
+ 	PhotoCraft on GitHub	GitHub 上の PhotoCraft
+ 	ArtCraft Website	ArtCraft の Web サイト
+@@ -782,7 +782,7 @@
+ 	All Caps	すべて大文字
+ 	All Slices	すべてのスライス
+ 	All User Slices	すべてのユーザースライス
+-	All shortcuts reset to PhotoCraft defaults.	すべてのショートカットを初期状態に戻しました。
++	All shortcuts reset to qDesinger defaults.	すべてのショートカットを初期状態に戻しました。
+ 	Alt	Alt
+ 	Alt-click to define a source point to clone from	Alt+クリックでコピー元を指定
+ 	Always use pressure for opacity	常に筆圧を不透明度に使う
+@@ -1019,8 +1019,8 @@
+ 	Drop an image or PSD anywhere to open it.	画像や PSD をここにドロップすると開きます。
+ 	Native file drag-and-drop is unavailable	Wayland ではネイティブのファイルドラッグ＆ドロップを利用できません
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Wayland ではネイティブのファイルドラッグ＆ドロップはまだ利用できません。[ファイル › 開く] を使うか、ファイルマネージャーで画像をコピーして {paste} で貼り付けてください。
+-	To drop files, start PhotoCraft under XWayland: `{command}`	ファイルをドロップするには、XWayland 上で PhotoCraft を起動してください: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	または 環境設定 › パフォーマンス › Linux ディスプレイサーバー を X11 にすると、PhotoCraft は常に XWayland 上で起動します。
++	To drop files, start qDesinger under XWayland: `{command}`	ファイルをドロップするには、XWayland 上で qDesinger を起動してください: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	または 環境設定 › パフォーマンス › Linux ディスプレイサーバー を X11 にすると、qDesinger は常に XWayland 上で起動します。
+ 	Edit › Paste	[編集 › 貼り付け]
+ 	Duplicate Layers…	レイヤーを複製…
+ 	Duplicate style	スタイルを複製
+@@ -1265,8 +1265,8 @@
+ 	Perspective Warp is not active	遠近法ワープは有効ではありません
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	遠近法ワープ: 画像の遠近に沿って面を描き、ワープに切り替えます
+ 	Photo Filter	写真フィルター
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft でカラーを管理
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger でカラーを管理
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — Rust で書かれた、オープンソースのネイティブ画像エディター。
+ 	Pin Depth:	ピンの深さ:
+ 	Pixel Length:	ピクセル長:
+@@ -1342,11 +1342,11 @@
+ 	Import Shortcuts…	ショートカットを読み込む…
+ 	Load a keyboard shortcut set saved as .kys	.kys として保存されたキーボードショートカットセットを読み込みます
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{file} から {n} 個のショートカットを読み込みました。OK をクリックすると保持されます。
+-	{n} commands are not in PhotoCraft.	{n} 個のコマンドは PhotoCraft にありません。
++	{n} commands are not in qDesinger.	{n} 個のコマンドは qDesinger にありません。
+ 	Keyboard shortcuts imported	キーボードショートカットを読み込みました
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	キーボードショートカットセット {set} をここで使用しています。{n} 個のショートカットが既定と異なります。編集 › キーボードショートカットで確認でき、「すべて既定に戻す」で元に戻せます。
+ 	Import keyboard shortcuts?	キーボードショートカットを読み込みますか？
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	このコンピューターで、別の画像編集アプリのキーボードショートカットセット {set} が見つかりました。{n} 個のショートカットが PhotoCraft と異なります。読み込みますか？
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	このコンピューターで、別の画像編集アプリのキーボードショートカットセット {set} が見つかりました。{n} 個のショートカットが qDesinger と異なります。読み込みますか？
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	編集 › キーボードショートカット › 「すべて既定に戻す」で読み込みを元に戻せます。
+ 	Don't Import	読み込まない
+ 	The keyboard shortcut set was not imported: {error}	キーボードショートカットセットは読み込まれませんでした: {error}
+@@ -1570,7 +1570,7 @@
+ 	Current Tool	現在のツール
+ 	Custom Shape Tool	カスタムシェイプツール
+ 	Cyans	シアン系
+-	Default PhotoCraft Size	PhotoCraft 既定サイズ
++	Default qDesinger Size	qDesinger 既定サイズ
+ 	Delete Workspace	ワークスペースを削除
+ 	Diamond	ダイヤモンド形
+ 	Dimensions:	寸法:
+@@ -2004,7 +2004,7 @@
+ 	System Info	システム情報
+ 	More panels	その他のパネル
+ 	More documents	その他のドキュメント
+-	These settings aren't available in PhotoCraft yet.	これらの設定は PhotoCraft ではまだ使用できません。
++	These settings aren't available in qDesinger yet.	これらの設定は qDesinger ではまだ使用できません。
+ 	Graphics	グラフィックス
+ 	Reset GPU Backend	GPU バックエンドをリセット
+ 	Applies at next launch.	次回の起動時に適用されます。
+@@ -2112,7 +2112,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	自動モードは利用可能な場合にGPUを使用し、エラー時はCPU描画に切り替えます。
+ 	Switched to CPU rendering	CPU描画に切り替えました
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPUアクセラレーションを継続できませんでした。ドキュメントは変更されていません。
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraftはCPUで画像を合成しています。ウィンドウは引き続きグラフィックスアダプターを使用する場合があります。
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesingerはCPUで画像を合成しています。ウィンドウは引き続きグラフィックスアダプターを使用する場合があります。
+ 	Retry GPU requires a restart. Save your work first.	GPUの再試行には再起動が必要です。先に作業を保存してください。
+ 	Keep Using CPU	CPUを使い続ける
+ 	Retry GPU	GPUを再試行
+@@ -3249,7 +3249,7 @@
+ 	Mouse Controls	マウス操作
+ 	Mouse Coordinates	マウス座標
+ 	NTSC (1953)	NTSC (1953)
+-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Wayland ではネイティブのファイルのドラッグ&ドロップにまだ対応していません。ファイル › 開く を使うか、XWayland 上で `WAYLAND_DISPLAY= photocraft` として PhotoCraft を実行してください。
++	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run qDesinger under XWayland with `WAYLAND_DISPLAY= photocraft`.	Wayland ではネイティブのファイルのドラッグ&ドロップにまだ対応していません。ファイル › 開く を使うか、XWayland 上で `WAYLAND_DISPLAY= photocraft` として qDesinger を実行してください。
+ 	New Brush	新規ブラシ
+ 	New Channel	新規チャンネル
+ 	New Layer from Brush	ブラシから新規レイヤー
+@@ -3371,7 +3371,7 @@
+ 	Color to Alpha…	カラーを透明に…
+ 	Transparency Threshold	透明のしきい値
+ 	Opacity Threshold	不透明度のしきい値
+-	PhotoCraft — Screen Color Picker	PhotoCraft — スクリーンカラーピッカー
++	qDesinger — Screen Color Picker	qDesinger — スクリーンカラーピッカー
+ 
+ 	Rasterize svg groups deeper than	この深さを超える SVG グループをラスタライズ
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 でこのしきい値は無効になります。100 階層を超えて入れ子になった SVG グループは常にラスタライズされます。
+--- a/crates/ui-egui/src/i18n/ko.tsv
++++ b/crates/ui-egui/src/i18n/ko.tsv
+@@ -699,7 +699,7 @@
+ 	Timeline	타임라인
+ 	Tool Presets	도구 사전 설정
+ 	Tools	도구
+-	About PhotoCraft	PhotoCraft 정보
++	About qDesinger	qDesinger 정보
+ 	PhotoCraft Website	PhotoCraft 웹사이트
+ 	PhotoCraft on GitHub	GitHub의 PhotoCraft
+ 	ArtCraft Website	ArtCraft 웹사이트
+@@ -753,7 +753,7 @@
+ 	All Caps	모두 대문자
+ 	All Slices	모든 분할 영역
+ 	All User Slices	모든 사용자 분할 영역
+-	All shortcuts reset to PhotoCraft defaults.	모든 단축키를 PhotoCraft 기본값으로 초기화했습니다.
++	All shortcuts reset to qDesinger defaults.	모든 단축키를 qDesinger 기본값으로 초기화했습니다.
+ 	Alt	Alt
+ 	Alt-click to define a source point to clone from	Alt 키를 누른 채 클릭하여 복제 원본 지점 지정
+ 	Always use pressure for opacity	불투명도에 항상 필압 사용
+@@ -1233,8 +1233,8 @@
+ 	Perspective Warp is not active	원근 뒤틀기가 활성화되어 있지 않습니다
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	원근 뒤틀기: 이미지의 원근에 따라 평면을 그린 다음 뒤틀기로 전환하세요
+ 	Photo Filter	포토 필터
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft에서 색상 관리
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger에서 색상 관리
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — Rust로 작성된 오픈 소스 네이티브 이미지 편집기.
+ 	Pin Depth:	핀 깊이:
+ 	Pixel Length:	픽셀 길이:
+@@ -1310,11 +1310,11 @@
+ 	Import Shortcuts…	단축키 가져오기…
+ 	Load a keyboard shortcut set saved as .kys	.kys로 저장된 키보드 단축키 세트 불러오기
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{file}에서 단축키 {n}개를 가져왔습니다. 유지하려면 확인을 클릭하세요.
+-	{n} commands are not in PhotoCraft.	명령 {n}개는 PhotoCraft에 없습니다.
++	{n} commands are not in qDesinger.	명령 {n}개는 qDesinger에 없습니다.
+ 	Keyboard shortcuts imported	키보드 단축키를 가져왔습니다
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	키보드 단축키 세트 {set}을(를) 여기서 사용합니다. 단축키 {n}개가 기본값과 다릅니다. 편집 › 키보드 단축키에서 확인할 수 있고, 모두 기본값으로 재설정으로 되돌릴 수 있습니다.
+ 	Import keyboard shortcuts?	키보드 단축키를 가져올까요?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft가 이 컴퓨터에서 다른 이미지 편집기의 키보드 단축키 세트 {set}을(를) 찾았습니다. 단축키 {n}개가 PhotoCraft와 다릅니다. 가져올까요?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger가 이 컴퓨터에서 다른 이미지 편집기의 키보드 단축키 세트 {set}을(를) 찾았습니다. 단축키 {n}개가 qDesinger와 다릅니다. 가져올까요?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	편집 › 키보드 단축키 › 모두 기본값으로 재설정으로 가져오기를 되돌릴 수 있습니다.
+ 	Don't Import	가져오지 않음
+ 	The keyboard shortcut set was not imported: {error}	키보드 단축키 세트를 가져오지 못했습니다: {error}
+@@ -1538,7 +1538,7 @@
+ 	Current Tool	현재 도구
+ 	Custom Shape Tool	사용자 정의 모양 도구
+ 	Cyans	사이안 계열
+-	Default PhotoCraft Size	PhotoCraft 기본 크기
++	Default qDesinger Size	qDesinger 기본 크기
+ 	Delete Workspace	작업 영역 삭제
+ 	Diamond	다이아몬드
+ 	Dimensions:	치수:
+@@ -1960,7 +1960,7 @@
+ 	System Info	시스템 정보
+ 	More panels	추가 패널
+ 	More documents	추가 문서
+-	These settings aren't available in PhotoCraft yet.	이 설정은 아직 PhotoCraft에서 사용할 수 없습니다.
++	These settings aren't available in qDesinger yet.	이 설정은 아직 qDesinger에서 사용할 수 없습니다.
+ 	Graphics	그래픽
+ 	Reset GPU Backend	GPU 백엔드 초기화
+ 	Applies at next launch.	다음 실행 시 적용됩니다.
+@@ -2069,8 +2069,8 @@
+ 	Use Global Light	전체 조명 사용
+ 	Native file drag-and-drop is unavailable	파일 드래그 앤 드롭을 사용할 수 없습니다
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Wayland에서는 아직 파일 드래그 앤 드롭을 지원하지 않습니다. 파일 › 열기를 사용하거나, 파일 관리자에서 이미지를 복사한 뒤 {paste}(으)로 붙여넣으세요.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	파일을 끌어다 놓으려면 XWayland에서 PhotoCraft를 실행하세요: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	또는 환경 설정 › 성능 › Linux 디스플레이 서버를 X11로 설정하면 PhotoCraft가 항상 XWayland에서 시작됩니다.
++	To drop files, start qDesinger under XWayland: `{command}`	파일을 끌어다 놓으려면 XWayland에서 qDesinger를 실행하세요: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	또는 환경 설정 › 성능 › Linux 디스플레이 서버를 X11로 설정하면 qDesinger가 항상 XWayland에서 시작됩니다.
+ 	Edit › Paste	편집 › 붙여넣기
+ 	Use File › Open, or paste a copied image with {paste}.	파일 › 열기를 사용하거나, 복사한 이미지를 {paste}(으)로 붙여넣으세요.
+ 	Invalid {mode} profile	유효하지 않은 {mode} 프로파일
+@@ -2084,7 +2084,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	자동 모드는 가능한 경우 GPU 가속을 사용하고 오류가 발생하면 CPU 렌더링으로 전환합니다.
+ 	Switched to CPU rendering	CPU 렌더링으로 전환했습니다
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPU 가속을 계속할 수 없습니다. 문서는 변경되지 않았습니다.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft가 CPU로 이미지를 합성하고 있습니다. 창 표시에는 그래픽 어댑터를 계속 사용할 수 있습니다.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger가 CPU로 이미지를 합성하고 있습니다. 창 표시에는 그래픽 어댑터를 계속 사용할 수 있습니다.
+ 	Retry GPU requires a restart. Save your work first.	GPU를 다시 사용하려면 다시 시작해야 합니다. 먼저 작업을 저장하세요.
+ 	Keep Using CPU	CPU 계속 사용
+ 	Retry GPU	GPU 다시 사용
+@@ -2930,7 +2930,7 @@
+ 	Color to Alpha…	색상을 알파로…
+ 	Transparency Threshold	투명도 한계값
+ 	Opacity Threshold	불투명도 한계값
+-	PhotoCraft — Screen Color Picker	PhotoCraft — 화면 색상 선택기
++	qDesinger — Screen Color Picker	qDesinger — 화면 색상 선택기
+ 
+ 	Rasterize svg groups deeper than	이 깊이보다 깊은 SVG 그룹 래스터화
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0이면 이 임계값을 끕니다. 100단계보다 깊이 중첩된 SVG 그룹은 항상 래스터화됩니다.
+--- a/crates/ui-egui/src/i18n/live_tests.rs
++++ b/crates/ui-egui/src/i18n/live_tests.rs
+@@ -25,7 +25,7 @@
+     with_language(Lang::EN, || {
+         let h = harness();
+         let layout = crate::native_menu::photocraft_layout(&crate::menus::menu_items(h.state()), lang("uk"), "uk");
+-        for (id, label) in [("help.about", "Про PhotoCraft"), (crate::native_menu::HIDE, "Приховати PhotoCraft"), ("file.exit", "Вийти з PhotoCraft")]
++        for (id, label) in [("help.about", "Про qDesinger"), (crate::native_menu::HIDE, "Приховати qDesinger"), ("file.exit", "Вийти з qDesinger")]
+         {
+             assert_eq!(layout.bar.find(id).map(|item| item.label.as_str()), Some(label), "{id}");
+         }
+--- a/crates/ui-egui/src/i18n/nl.tsv
++++ b/crates/ui-egui/src/i18n/nl.tsv
+@@ -710,7 +710,7 @@
+ 	Timeline	Tijdlijn
+ 	Tool Presets	Gereedschapsvoorinstellingen
+ 	Tools	Gereedschappen
+-	About PhotoCraft	Over PhotoCraft
++	About qDesinger	Over qDesinger
+ 	PhotoCraft Website	Website van PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft op GitHub
+ 	ArtCraft Website	Website van ArtCraft
+@@ -764,7 +764,7 @@
+ 	All Caps	Alleen hoofdletters
+ 	All Slices	Alle segmenten
+ 	All User Slices	Alle gebruikerssegmenten
+-	All shortcuts reset to PhotoCraft defaults.	Alle sneltoetsen zijn teruggezet naar de standaardwaarden van PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Alle sneltoetsen zijn teruggezet naar de standaardwaarden van qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Altijd druk gebruiken voor dekking
+ 	Always use pressure for size	Altijd druk gebruiken voor grootte
+@@ -1003,8 +1003,8 @@
+ 	Drop an image or PSD anywhere to open it.	Sleep een afbeelding of PSD ergens naartoe om deze te openen.
+ 	Native file drag-and-drop is unavailable	Bestanden slepen en neerzetten is niet beschikbaar
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of kopieer de afbeelding in je bestandsbeheerder en plak deze met {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Start PhotoCraft onder XWayland om bestanden neer te zetten: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Of zet Voorkeuren › Prestaties › Linux-weergaveserver op X11: PhotoCraft start dan altijd onder XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Start qDesinger onder XWayland om bestanden neer te zetten: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Of zet Voorkeuren › Prestaties › Linux-weergaveserver op X11: qDesinger start dan altijd onder XWayland.
+ 	Edit › Paste	Bewerken › Plakken
+ 	Duplicate Layers…	Lagen dupliceren…
+ 	Duplicate style	Stijl dupliceren
+@@ -1249,8 +1249,8 @@
+ 	Perspective Warp is not active	Perspectiefvervorming is niet actief
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspectiefvervorming: teken vlakken langs het perspectief van de afbeelding en schakel daarna naar Verbuigen
+ 	Photo Filter	Fotofilter
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft beheert kleuren
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger beheert kleuren
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — een opensource, native afbeeldingseditor geschreven in Rust.
+ 	Pin Depth:	Speldiepte:
+ 	Pixel Length:	Pixellengte:
+@@ -1326,11 +1326,11 @@
+ 	Import Shortcuts…	Sneltoetsen importeren…
+ 	Load a keyboard shortcut set saved as .kys	Een als .kys opgeslagen sneltoetsenset laden
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} sneltoetsen geïmporteerd uit {file}. Klik op OK om ze te behouden.
+-	{n} commands are not in PhotoCraft.	{n} opdrachten bestaan niet in PhotoCraft.
++	{n} commands are not in qDesinger.	{n} opdrachten bestaan niet in qDesinger.
+ 	Keyboard shortcuts imported	Sneltoetsen geïmporteerd
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Je sneltoetsenset {set} wordt hier gebruikt: {n} sneltoetsen wijken af van de standaardwaarden. Bewerken › Sneltoetsen toont ze; Alles terugzetten naar standaard maakt dit ongedaan.
+ 	Import keyboard shortcuts?	Sneltoetsen importeren?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft heeft op deze computer je sneltoetsenset {set} van een andere beeldbewerker gevonden: {n} van de sneltoetsen wijken af van die van PhotoCraft. Importeren?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger heeft op deze computer je sneltoetsenset {set} van een andere beeldbewerker gevonden: {n} van de sneltoetsen wijken af van die van qDesinger. Importeren?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Bewerken › Sneltoetsen › Alles terugzetten naar standaard maakt een import ongedaan.
+ 	Don't Import	Niet importeren
+ 	The keyboard shortcut set was not imported: {error}	De sneltoetsenset is niet geïmporteerd: {error}
+@@ -1549,7 +1549,7 @@
+ 	Current Tool	Huidig gereedschap
+ 	Custom Shape Tool	Gereedschap Aangepaste vorm
+ 	Cyans	Cyaantinten
+-	Default PhotoCraft Size	Standaardgrootte PhotoCraft
++	Default qDesinger Size	Standaardgrootte qDesinger
+ 	Delete Workspace	Werkruimte verwijderen
+ 	Diamond	Ruit
+ 	Dimensions:	Afmetingen:
+@@ -1973,7 +1973,7 @@
+ 	System Info	Systeeminformatie
+ 	More panels	Meer panelen
+ 	More documents	Meer documenten
+-	These settings aren't available in PhotoCraft yet.	Deze instellingen zijn nog niet beschikbaar in PhotoCraft.
++	These settings aren't available in qDesinger yet.	Deze instellingen zijn nog niet beschikbaar in qDesinger.
+ 	Graphics	Grafisch
+ 	Reset GPU Backend	GPU-backend herstellen
+ 	Applies at next launch.	Wordt toegepast bij de volgende start.
+@@ -2162,7 +2162,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatisch gebruikt GPU-versnelling indien beschikbaar en valt bij fouten terug op CPU-rendering.
+ 	Switched to CPU rendering	Overgeschakeld naar CPU-rendering
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPU-versnelling kon niet doorgaan. Je documenten zijn ongewijzigd.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft gebruikt de CPU-beeldcompositor. Het venster kan nog steeds je grafische adapter gebruiken.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger gebruikt de CPU-beeldcompositor. Het venster kan nog steeds je grafische adapter gebruiken.
+ 	Retry GPU requires a restart. Save your work first.	GPU opnieuw proberen vereist een herstart. Sla eerst je werk op.
+ 	Keep Using CPU	CPU blijven gebruiken
+ 	Retry GPU	GPU opnieuw proberen
+@@ -2526,7 +2526,7 @@
+ 	Restart Required	Herstart vereist
+ 	Restart	Opnieuw starten
+ 	Quit	Afsluiten
+-	Quit PhotoCraft	PhotoCraft afsluiten
++	Quit qDesinger	qDesinger afsluiten
+ 	Close Window	Venster sluiten
+ 	New Window	Nieuw venster
+ 	Open Image	Afbeelding openen
+@@ -3296,7 +3296,7 @@
+ 	Modify Date	Wijzigingsdatum
+ 	Mosaic	Mozaïek
+ 	Motion Blur	Bewegingsonscherpte
+-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of start PhotoCraft onder XWayland met `WAYLAND_DISPLAY= photocraft`.
++	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run qDesinger under XWayland with `WAYLAND_DISPLAY= photocraft`.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of start qDesinger onder XWayland met `WAYLAND_DISPLAY= photocraft`.
+ 	Neon Glow	Neongloed
+ 	New Guide Layout	Nieuwe hulplijnindeling
+ 	New Path	Nieuw pad
+@@ -3617,4 +3617,4 @@
+ 	Front Image	Voorste afbeelding
+ 	Search settings…	Instellingen zoeken…
+ 	No matching settings	Geen overeenkomende instellingen
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Schermkleurkiezer
++	qDesinger — Screen Color Picker	qDesinger — Schermkleurkiezer
+--- a/crates/ui-egui/src/i18n/pl.tsv
++++ b/crates/ui-egui/src/i18n/pl.tsv
+@@ -724,7 +724,7 @@
+ 	Timeline	Oś czasu
+ 	Tool Presets	Ustawienia wstępne narzędzi
+ 	Tools	Narzędzia
+-	About PhotoCraft	O programie PhotoCraft
++	About qDesinger	O programie qDesinger
+ 	PhotoCraft Website	Strona internetowa PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft na GitHubie
+ 	ArtCraft Website	Strona internetowa ArtCraft
+@@ -780,7 +780,7 @@
+ 	All Caps	Wszystkie wersaliki
+ 	All Slices	Wszystkie plasterki
+ 	All User Slices	Wszystkie plasterki użytkownika
+-	All shortcuts reset to PhotoCraft defaults.	Wszystkie skróty przywrócono do ustawień domyślnych PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Wszystkie skróty przywrócono do ustawień domyślnych qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Zawsze używaj nacisku do krycia
+ 	Always use pressure for size	Zawsze używaj nacisku do rozmiaru
+@@ -1017,7 +1017,7 @@
+ 	Draw with the Pen tool (P) or make a work path from a selection.	Rysuj narzędziem Pióro (P) lub utwórz ścieżkę roboczą z zaznaczenia.
+ 	Drop an image or PSD anywhere to open it.	Upuść obraz lub plik PSD w dowolnym miejscu, aby go otworzyć.
+ 	Native file drag-and-drop is unavailable	Natywne przeciąganie plików jest niedostępne
+-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Natywne przeciąganie plików nie jest jeszcze obsługiwane w Waylandzie. Użyj Plik › Otwórz lub uruchom PhotoCraft w XWayland poleceniem `WAYLAND_DISPLAY= photocraft`.
++	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run qDesinger under XWayland with `WAYLAND_DISPLAY= photocraft`.	Natywne przeciąganie plików nie jest jeszcze obsługiwane w Waylandzie. Użyj Plik › Otwórz lub uruchom qDesinger w XWayland poleceniem `WAYLAND_DISPLAY= photocraft`.
+ 	Duplicate Layers…	Duplikuj warstwy…
+ 	Duplicate style	Duplikuj styl
+ 	Edit Toolbar…	Edytuj pasek narzędzi…
+@@ -1260,8 +1260,8 @@
+ 	Perspective Warp is not active	Wypaczenie perspektywy nie jest aktywne
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Wypaczenie perspektywy: narysuj płaszczyzny zgodnie z perspektywą obrazu, a następnie przełącz na wypaczenie
+ 	Photo Filter	Filtr fotograficzny
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	Kolorami zarządza PhotoCraft
++	qDesinger	qDesinger
++	qDesinger Manages Colors	Kolorami zarządza qDesinger
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — natywny edytor obrazów o otwartym kodzie źródłowym, napisany w Rust.
+ 	Pin Depth:	Głębokość szpilki:
+ 	Pixel Length:	Długość w pikselach:
+@@ -1337,11 +1337,11 @@
+ 	Import Shortcuts…	Importuj skróty…
+ 	Load a keyboard shortcut set saved as .kys	Wczytaj zestaw skrótów klawiaturowych zapisany jako .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Zaimportowano skrótów: {n} z pliku {file}. Kliknij OK, aby je zachować.
+-	{n} commands are not in PhotoCraft.	Poleceń, których nie ma w PhotoCraft: {n}.
++	{n} commands are not in qDesinger.	Poleceń, których nie ma w qDesinger: {n}.
+ 	Keyboard shortcuts imported	Zaimportowano skróty klawiaturowe
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Twój zestaw skrótów klawiaturowych {set} jest tu używany: skrótów innych niż domyślne: {n}. Edycja › Skróty klawiaturowe je pokazuje; Przywróć wszystkie domyślne cofa import.
+ 	Import keyboard shortcuts?	Zaimportować skróty klawiaturowe?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft znalazł na tym komputerze Twój zestaw skrótów klawiaturowych {set} z innego edytora obrazów: skrótów innych niż w PhotoCraft: {n}. Zaimportować go?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger znalazł na tym komputerze Twój zestaw skrótów klawiaturowych {set} z innego edytora obrazów: skrótów innych niż w qDesinger: {n}. Zaimportować go?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Edycja › Skróty klawiaturowe › Przywróć wszystkie domyślne cofa import.
+ 	Don't Import	Nie importuj
+ 	The keyboard shortcut set was not imported: {error}	Nie zaimportowano zestawu skrótów klawiaturowych: {error}
+@@ -1563,7 +1563,7 @@
+ 	Current Tool	Bieżące narzędzie
+ 	Custom Shape Tool	Narzędzie Kształt niestandardowy
+ 	Cyans	Cyjany
+-	Default PhotoCraft Size	Domyślny rozmiar PhotoCraft
++	Default qDesinger Size	Domyślny rozmiar qDesinger
+ 	Delete Workspace	Usuń obszar roboczy
+ 	Diamond	Romb
+ 	Dimensions:	Wymiary:
+@@ -1994,7 +1994,7 @@
+ 	System Info…	Informacje o systemie…
+ 	System Info	Informacje o systemie
+ 	More panels	Więcej paneli
+-	These settings aren't available in PhotoCraft yet.	Te ustawienia nie są jeszcze dostępne w PhotoCraft.
++	These settings aren't available in qDesinger yet.	Te ustawienia nie są jeszcze dostępne w qDesinger.
+ 	Graphics	Grafika
+ 	Reset GPU Backend	Resetuj backend GPU
+ 	Applies at next launch.	Zadziała po następnym uruchomieniu.
+@@ -2563,7 +2563,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Tryb automatyczny używa akceleracji GPU, gdy jest dostępna, a w razie błędów przełącza się na renderowanie CPU.
+ 	Switched to CPU rendering	Przełączono na renderowanie CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Akceleracja GPU nie mogła być kontynuowana. Twoje dokumenty nie zostały zmienione.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft używa kompozytora obrazu CPU. Okno może nadal korzystać z karty graficznej.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger używa kompozytora obrazu CPU. Okno może nadal korzystać z karty graficznej.
+ 	Retry GPU requires a restart. Save your work first.	Ponowna próba z GPU wymaga restartu. Najpierw zapisz swoją pracę.
+ 	Keep Using CPU	Nadal używaj CPU
+ 	Retry GPU	Spróbuj ponownie z GPU
+@@ -3284,8 +3284,8 @@
+ 	Could not open	Nie można otworzyć
+ 	{path}: the path is not valid Unicode; rename the file and open it again.	{path}: ścieżka nie jest prawidłowym Unicode; zmień nazwę pliku i otwórz go ponownie.
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Natywne przeciąganie i upuszczanie plików nie jest jeszcze obsługiwane w Wayland. Użyj Plik › Otwórz albo skopiuj obraz w menedżerze plików i wklej go za pomocą {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Aby upuszczać pliki, uruchom PhotoCraft pod XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Albo ustaw Preferencje › Wydajność › Serwer wyświetlania Linuksa na X11: PhotoCraft będzie wtedy zawsze uruchamiany pod XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Aby upuszczać pliki, uruchom qDesinger pod XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Albo ustaw Preferencje › Wydajność › Serwer wyświetlania Linuksa na X11: qDesinger będzie wtedy zawsze uruchamiany pod XWayland.
+ 	Edit › Paste	Edycja › Wklej
+ 	Use File › Open, or paste a copied image with {paste}.	Użyj Plik › Otwórz albo wklej skopiowany obraz za pomocą {paste}.
+ 
+@@ -3371,7 +3371,7 @@
+ 	Color to Alpha…	Kolor na alfę…
+ 	Transparency Threshold	Próg przezroczystości
+ 	Opacity Threshold	Próg krycia
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Próbnik kolorów ekranu
++	qDesinger — Screen Color Picker	qDesinger — Próbnik kolorów ekranu
+ 
+ 	Rasterize svg groups deeper than	Rasteryzuj grupy SVG głębsze niż ten poziom
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 wyłącza ten próg; grupy SVG zagnieżdżone głębiej niż 100 poziomów są zawsze rasteryzowane.
+--- a/crates/ui-egui/src/i18n/pt-br.tsv
++++ b/crates/ui-egui/src/i18n/pt-br.tsv
+@@ -711,7 +711,7 @@
+ 	Timeline	Linha do tempo
+ 	Tool Presets	Predefinições de ferramentas
+ 	Tools	Ferramentas
+-	About PhotoCraft	Sobre o PhotoCraft
++	About qDesinger	Sobre o qDesinger
+ 	PhotoCraft Website	Site do PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft no GitHub
+ 	ArtCraft Website	Site do ArtCraft
+@@ -765,7 +765,7 @@
+ 	All Caps	Tudo em maiúsculas
+ 	All Slices	Todas as fatias
+ 	All User Slices	Todas as fatias do usuário
+-	All shortcuts reset to PhotoCraft defaults.	Todos os atalhos foram redefinidos para os padrões do PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Todos os atalhos foram redefinidos para os padrões do qDesinger.
+ 	Alt	Alt
+ 	Always use pressure for opacity	Sempre usar a pressão para a opacidade
+ 	Always use pressure for size	Sempre usar a pressão para o tamanho
+@@ -1243,8 +1243,8 @@
+ 	Perspective Warp is not active	A distorção de perspectiva não está ativa
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Distorção de perspectiva: desenhe planos seguindo a perspectiva da imagem e depois mude para Deformar
+ 	Photo Filter	Filtro de fotos
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	O PhotoCraft gerencia as cores
++	qDesinger	qDesinger
++	qDesinger Manages Colors	O qDesinger gerencia as cores
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — um editor de imagens nativo e de código aberto escrito em Rust.
+ 	Pin Depth:	Profundidade do alfinete:
+ 	Pixel Length:	Comprimento em pixels:
+@@ -1321,11 +1321,11 @@
+ 	Import Shortcuts…	Importar atalhos…
+ 	Load a keyboard shortcut set saved as .kys	Carregar um conjunto de atalhos de teclado salvo como .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} atalhos importados de {file}. Clique em OK para mantê-los.
+-	{n} commands are not in PhotoCraft.	{n} comandos não existem no PhotoCraft.
++	{n} commands are not in qDesinger.	{n} comandos não existem no qDesinger.
+ 	Keyboard shortcuts imported	Atalhos de teclado importados
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Seu conjunto de atalhos de teclado {set} está em uso aqui: {n} atalhos diferem dos padrões. Editar › Atalhos de teclado os mostra; Redefinir tudo para o padrão desfaz isso.
+ 	Import keyboard shortcuts?	Importar atalhos de teclado?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	O PhotoCraft encontrou neste computador seu conjunto de atalhos de teclado {set} de outro editor de imagens: {n} de seus atalhos diferem dos do PhotoCraft. Importá-lo?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	O qDesinger encontrou neste computador seu conjunto de atalhos de teclado {set} de outro editor de imagens: {n} de seus atalhos diferem dos do qDesinger. Importá-lo?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Editar › Atalhos de teclado › Redefinir tudo para o padrão desfaz uma importação.
+ 	Don't Import	Não importar
+ 	The keyboard shortcut set was not imported: {error}	O conjunto de atalhos de teclado não foi importado: {error}
+@@ -1544,7 +1544,7 @@
+ 	Current Tool	Ferramenta atual
+ 	Custom Shape Tool	Ferramenta Forma personalizada
+ 	Cyans	Cianos
+-	Default PhotoCraft Size	Tamanho padrão do PhotoCraft
++	Default qDesinger Size	Tamanho padrão do qDesinger
+ 	Delete Workspace	Excluir espaço de trabalho
+ 	Diamond	Diamante
+ 	Dimensions:	Dimensões:
+@@ -1966,7 +1966,7 @@
+ 	System Info	Informações do sistema
+ 	More panels	Mais painéis
+ 	More documents	Mais documentos
+-	These settings aren't available in PhotoCraft yet.	Estas configurações ainda não estão disponíveis no PhotoCraft.
++	These settings aren't available in qDesinger yet.	Estas configurações ainda não estão disponíveis no qDesinger.
+ 	Graphics	Gráficos
+ 	Reset GPU Backend	Redefinir backend da GPU
+ 	Applies at next launch.	Aplica-se na próxima inicialização.
+@@ -2535,8 +2535,8 @@
+ 	Use Global Light	Usar luz global
+ 	Native file drag-and-drop is unavailable	Arrastar e soltar arquivos não está disponível
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	O recurso nativo de arrastar e soltar arquivos ainda não funciona no Wayland. Use Arquivo › Abrir ou copie a imagem no gerenciador de arquivos e cole-a com {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Para soltar arquivos, execute o PhotoCraft no XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Ou defina Preferências › Desempenho › Servidor de exibição Linux como X11: o PhotoCraft passa a iniciar sempre no XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Para soltar arquivos, execute o qDesinger no XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Ou defina Preferências › Desempenho › Servidor de exibição Linux como X11: o qDesinger passa a iniciar sempre no XWayland.
+ 	Edit › Paste	Editar › Colar
+ 	Use File › Open, or paste a copied image with {paste}.	Use Arquivo › Abrir ou cole uma imagem copiada com {paste}.
+ 	Mixer Brush Tool	Ferramenta Pincel misturador
+@@ -2551,7 +2551,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	O modo automático usa a aceleração por GPU quando disponível e volta para a renderização por CPU em caso de erros.
+ 	Switched to CPU rendering	Renderização alterada para CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	A aceleração por GPU não pôde continuar. Seus documentos não foram alterados.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	O PhotoCraft está usando o compositor de imagens da CPU. A janela ainda pode usar seu adaptador gráfico.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	O qDesinger está usando o compositor de imagens da CPU. A janela ainda pode usar seu adaptador gráfico.
+ 	Retry GPU requires a restart. Save your work first.	Tentar a GPU novamente exige reiniciar. Salve seu trabalho primeiro.
+ 	Keep Using CPU	Continuar usando a CPU
+ 	Retry GPU	Tentar a GPU novamente
+@@ -2776,7 +2776,7 @@
+ 	Color to Alpha…	Cor para alfa…
+ 	Transparency Threshold	Limiar de transparência
+ 	Opacity Threshold	Limiar de opacidade
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Seletor de cor da tela
++	qDesinger — Screen Color Picker	qDesinger — Seletor de cor da tela
+ 
+ 	Rasterize svg groups deeper than	Rasterizar grupos SVG além desta profundidade
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 desativa este limite; grupos SVG aninhados em mais de 100 níveis são sempre rasterizados.
+--- a/crates/ui-egui/src/i18n/ru.tsv
++++ b/crates/ui-egui/src/i18n/ru.tsv
+@@ -479,7 +479,7 @@
+ 	Hide All	Скрыть все
+ 
+ # Help
+-	About PhotoCraft	О программе PhotoCraft
++	About qDesinger	О программе qDesinger
+ 	PhotoCraft Website	Сайт PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft на GitHub
+ 	Report an Issue…	Сообщить о проблеме…
+@@ -560,11 +560,11 @@
+ 	Import Shortcuts…	Импортировать сочетания клавиш…
+ 	Load a keyboard shortcut set saved as .kys	Загрузить набор сочетаний клавиш, сохранённый как .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Импортировано сочетаний: {n} из {file}. Нажмите OK, чтобы сохранить их.
+-	{n} commands are not in PhotoCraft.	Команд, которых нет в PhotoCraft: {n}.
++	{n} commands are not in qDesinger.	Команд, которых нет в qDesinger: {n}.
+ 	Keyboard shortcuts imported	Сочетания клавиш импортированы
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Здесь используется ваш набор сочетаний клавиш {set}: сочетаний, отличных от стандартных: {n}. Их показывает Редактирование › Сочетания клавиш; «Сбросить всё к значениям по умолчанию» отменяет импорт.
+ 	Import keyboard shortcuts?	Импортировать сочетания клавиш?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft нашёл на этом компьютере ваш набор сочетаний клавиш {set} из другого графического редактора: сочетаний, отличных от PhotoCraft: {n}. Импортировать его?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger нашёл на этом компьютере ваш набор сочетаний клавиш {set} из другого графического редактора: сочетаний, отличных от qDesinger: {n}. Импортировать его?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Редактирование › Сочетания клавиш › «Сбросить всё к значениям по умолчанию» отменяет импорт.
+ 	Don't Import	Не импортировать
+ 	The keyboard shortcut set was not imported: {error}	Набор сочетаний клавиш не импортирован: {error}
+@@ -868,7 +868,7 @@
+ 	Embed Color Profile	Встроить цветовой профиль
+ 	Assign Profile…	Назначить профиль…
+ 	Convert to Profile…	Преобразовать в профиль…
+-	PhotoCraft Manages Colors	PhotoCraft управляет цветами
++	qDesinger Manages Colors	qDesinger управляет цветами
+ 	Printer Manages Colors	Принтер управляет цветами
+ 	(print to the printer)	(печать на принтере)
+ 	Absolute Colorimetric	Абсолютный колориметрический
+@@ -1440,15 +1440,15 @@
+ 	Use File › Open, or paste a copied image with {paste}.	Выберите Файл › Открыть или вставьте скопированное изображение с помощью {paste}.
+ 	Native file drag-and-drop is unavailable	Нативное перетаскивание файлов в Wayland недоступно
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или скопируйте изображение в файловом менеджере и вставьте его с помощью {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Чтобы перетаскивать файлы, запустите PhotoCraft в XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Или выберите в Настройки › Производительность › Дисплейный сервер Linux значение X11: PhotoCraft будет всегда запускаться в XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Чтобы перетаскивать файлы, запустите qDesinger в XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Или выберите в Настройки › Производительность › Дисплейный сервер Linux значение X11: qDesinger будет всегда запускаться в XWayland.
+ 	Edit › Paste	Редактирование › Вставить
+ 	Photo	Фото
+ 	Print	Печать
+ 	Art & Illustration	Искусство и иллюстрация
+ 	Mobile	Мобильные
+ 	Film & Video	Кино и видео
+-	Default PhotoCraft Size	Размер PhotoCraft по умолчанию
++	Default qDesinger Size	Размер qDesinger по умолчанию
+ 	Clipboard	Буфер обмена
+ 	Photo (2 × 3 in)	Фото (2 × 3 дюйма)
+ 	Photo (4 × 6 in)	Фото (4 × 6 дюйма)
+@@ -1617,9 +1617,9 @@
+ 	Don't Save	Не сохранять
+ 	No	Нет
+ 	Yes	Да
+-	These settings aren't available in PhotoCraft yet.	Эти параметры пока недоступны в PhotoCraft.
++	These settings aren't available in qDesinger yet.	Эти параметры пока недоступны в qDesinger.
+ 	Shortcut removed.	Комбинация клавиш удалена.
+-	All shortcuts reset to PhotoCraft defaults.	Все комбинации клавиш сброшены к стандартным PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Все комбинации клавиш сброшены к стандартным qDesinger.
+ 	Delete Shortcut	Удалить комбинацию
+ 	Press keys…	Нажмите клавиши…
+ 	shortcut	комбинация
+@@ -2079,7 +2079,7 @@
+ 	Output:	Выход:
+ 	Paint Overlay	Перекрытие краской
+ 	Pattern Size	Размер паттерна
+-	PhotoCraft	PhotoCraft
++	qDesinger	qDesinger
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — открытый нативный графический редактор на Rust.
+ 	Position and Size	Положение и размер
+ 	Preserve Details	Сохранять детали
+@@ -2394,7 +2394,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Автоматический режим использует GPU, когда он доступен, и переходит на CPU при ошибках.
+ 	Switched to CPU rendering	Включена отрисовка на CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Ускорение GPU остановлено. Документы не изменены.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft обрабатывает изображения на CPU. Окно может продолжать использовать графический адаптер.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger обрабатывает изображения на CPU. Окно может продолжать использовать графический адаптер.
+ 	Retry GPU requires a restart. Save your work first.	Для повтора GPU нужен перезапуск. Сначала сохраните работу.
+ 	Keep Using CPU	Продолжить с CPU
+ 	Retry GPU	Повторить GPU
+@@ -2621,7 +2621,7 @@
+ 	Color to Alpha…	Цвет в альфа-канал…
+ 	Transparency Threshold	Порог прозрачности
+ 	Opacity Threshold	Порог непрозрачности
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Пипетка цвета экрана
++	qDesinger — Screen Color Picker	qDesinger — Пипетка цвета экрана
+ 
+ 	Rasterize svg groups deeper than	Растеризовать группы SVG глубже этого уровня
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 отключает этот порог; группы SVG с вложенностью более 100 уровней всегда растрируются.
+--- a/crates/ui-egui/src/i18n/uk.tsv
++++ b/crates/ui-egui/src/i18n/uk.tsv
+@@ -458,7 +458,7 @@
+ 	Hide All	Приховати все
+ 
+ # Help
+-	About PhotoCraft	Про PhotoCraft
++	About qDesinger	Про qDesinger
+ 	PhotoCraft Website	Вебсайт PhotoCraft
+ 	PhotoCraft on GitHub	PhotoCraft на GitHub
+ 	Report an Issue…	Повідомити про проблему…
+@@ -539,11 +539,11 @@
+ 	Import Shortcuts…	Імпортувати сполучення клавіш…
+ 	Load a keyboard shortcut set saved as .kys	Завантажити набір сполучень клавіш, збережений як .kys
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	Імпортовано сполучень клавіш: {n} із {file}. Натисніть OK, щоб зберегти їх.
+-	{n} commands are not in PhotoCraft.	Команд, яких немає в PhotoCraft: {n}.
++	{n} commands are not in qDesinger.	Команд, яких немає в qDesinger: {n}.
+ 	Keyboard shortcuts imported	Сполучення клавіш імпортовано
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Тут використовується ваш набір сполучень клавіш {set}: сполучень, що відрізняються від стандартних: {n}. Їх показує Редагування › Сполучення клавіш; «Скинути все до стандартних» скасовує імпорт.
+ 	Import keyboard shortcuts?	Імпортувати сполучення клавіш?
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft знайшов на цьому комп'ютері ваш набір сполучень клавіш {set} з іншого графічного редактора: сполучень, що відрізняються від PhotoCraft: {n}. Імпортувати його?
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger знайшов на цьому комп'ютері ваш набір сполучень клавіш {set} з іншого графічного редактора: сполучень, що відрізняються від qDesinger: {n}. Імпортувати його?
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Редагування › Сполучення клавіш › «Скинути все до стандартних» скасовує імпорт.
+ 	Don't Import	Не імпортувати
+ 	The keyboard shortcut set was not imported: {error}	Набір сполучень клавіш не імпортовано: {error}
+@@ -847,7 +847,7 @@
+ 	Embed Color Profile	Вбудувати колірний профіль
+ 	Assign Profile…	Призначити профіль…
+ 	Convert to Profile…	Перетворити на профіль…
+-	PhotoCraft Manages Colors	PhotoCraft керує кольорами
++	qDesinger Manages Colors	qDesinger керує кольорами
+ 	Printer Manages Colors	Принтер керує кольорами
+ 	(print to the printer)	(друк на принтері)
+ 	Absolute Colorimetric	Абсолютний колориметричний
+@@ -1422,15 +1422,15 @@
+ 	Use File › Open, or paste a copied image with {paste}.	Скористайтеся меню Файл › Відкрити або вставте скопійоване зображення за допомогою {paste}.
+ 	Native file drag-and-drop is unavailable	Нативне перетягування файлів недоступне
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Нативне перетягування файлів у Wayland ще не підтримується. Скористайтеся меню Файл › Відкрити або скопіюйте зображення у файловому менеджері та вставте його за допомогою {paste}.
+-	To drop files, start PhotoCraft under XWayland: `{command}`	Щоб перетягувати файли, запустіть PhotoCraft під XWayland: `{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Або виберіть X11 у Налаштування › Продуктивність › Сервер відображення Linux: PhotoCraft завжди запускатиметься під XWayland.
++	To drop files, start qDesinger under XWayland: `{command}`	Щоб перетягувати файли, запустіть qDesinger під XWayland: `{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	Або виберіть X11 у Налаштування › Продуктивність › Сервер відображення Linux: qDesinger завжди запускатиметься під XWayland.
+ 	Edit › Paste	Редагування › Вставити
+ 	Photo	Фото
+ 	Print	Друк
+ 	Art & Illustration	Мистецтво та ілюстрація
+ 	Mobile	Мобільні пристрої
+ 	Film & Video	Фільм і відео
+-	Default PhotoCraft Size	Типовий розмір PhotoCraft
++	Default qDesinger Size	Типовий розмір qDesinger
+ 	Clipboard	Буфер обміну
+ 	Photo (2 × 3 in)	Фото (2 × 3 дюйми)
+ 	Photo (4 × 6 in)	Фото (4 × 6 дюймів)
+@@ -1599,9 +1599,9 @@
+ 	Don't Save	Не зберігати
+ 	No	Ні
+ 	Yes	Так
+-	These settings aren't available in PhotoCraft yet.	Ці параметри ще недоступні у PhotoCraft.
++	These settings aren't available in qDesinger yet.	Ці параметри ще недоступні у qDesinger.
+ 	Shortcut removed.	Клавіатурне скорочення вилучено.
+-	All shortcuts reset to PhotoCraft defaults.	Усі клавіатурні скорочення скинуто до типових значень PhotoCraft.
++	All shortcuts reset to qDesinger defaults.	Усі клавіатурні скорочення скинуто до типових значень qDesinger.
+ 	Delete Shortcut	Видалити клавіатурне скорочення
+ 	Press keys…	Натисніть клавіші…
+ 	shortcut	клавіатурне скорочення
+@@ -2067,7 +2067,7 @@
+ 	Output:	Вихід:
+ 	Paint Overlay	Малювати накладання
+ 	Pattern Size	Розмір візерунка
+-	PhotoCraft	PhotoCraft
++	qDesinger	qDesinger
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — нативний редактор зображень із відкритим кодом, написаний на Rust.
+ 	Position and Size	Положення та розмір
+ 	Preserve Details	Зберігати деталі
+@@ -2369,7 +2369,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Автоматичний режим використовує прискорення GPU, коли воно доступне, та переходить на рендеринг CPU в разі помилок.
+ 	Switched to CPU rendering	Перехід на рендеринг CPU
+ 	GPU acceleration could not continue. Your documents are unchanged.	Прискорення GPU не може продовжувати роботу. Ваші документи не змінено.
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft використовує компонувальник зображень CPU. Вікно може й далі використовувати ваш графічний адаптер.
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger використовує компонувальник зображень CPU. Вікно може й далі використовувати ваш графічний адаптер.
+ 	Retry GPU requires a restart. Save your work first.	Повторна спроба використати GPU потребує перезапуску. Спочатку збережіть роботу.
+ 	Keep Using CPU	Продовжити з CPU
+ 	Retry GPU	Повторити спробу з GPU
+@@ -3545,4 +3545,4 @@
+ 	Front Image	Зображення переднього плану
+ 	Search settings…	Пошук налаштувань…
+ 	No matching settings	Немає відповідних налаштувань
+-	PhotoCraft — Screen Color Picker	PhotoCraft — Піпетка кольору екрана
++	qDesinger — Screen Color Picker	qDesinger — Піпетка кольору екрана
+--- a/crates/ui-egui/src/i18n/zh-hans.tsv
++++ b/crates/ui-egui/src/i18n/zh-hans.tsv
+@@ -726,7 +726,7 @@
+ 	Timeline	时间轴
+ 	Tool Presets	工具预设
+ 	Tools	工具
+-	About PhotoCraft	关于 PhotoCraft
++	About qDesinger	关于 qDesinger
+ 	PhotoCraft Website	PhotoCraft 网站
+ 	PhotoCraft on GitHub	PhotoCraft 的 GitHub 页面
+ 	ArtCraft Website	ArtCraft 网站
+@@ -781,7 +781,7 @@
+ 	All Caps	全部大写
+ 	All Slices	所有切片
+ 	All User Slices	所有用户切片
+-	All shortcuts reset to PhotoCraft defaults.	所有快捷键已重置为 PhotoCraft 默认值。
++	All shortcuts reset to qDesinger defaults.	所有快捷键已重置为 qDesinger 默认值。
+ 	Alt	Alt
+ 	Alt-click to define a source point to clone from	按 Alt 单击以定义仿制源点
+ 	Always use pressure for opacity	始终用压感控制不透明度
+@@ -1019,8 +1019,8 @@
+ 	Drop an image or PSD anywhere to open it.	将图像或 PSD 拖放到任意位置即可打开。
+ 	Native file drag-and-drop is unavailable	Wayland 上不支持原生文件拖放
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Wayland 尚不支持原生文件拖放。请使用“文件 › 打开”，或在文件管理器中复制图像后使用 {paste} 粘贴。
+-	To drop files, start PhotoCraft under XWayland: `{command}`	要拖放文件，请在 XWayland 下启动 PhotoCraft：`{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	或将 首选项 › 性能 › Linux 显示服务器 设为 X11：PhotoCraft 将始终在 XWayland 下启动。
++	To drop files, start qDesinger under XWayland: `{command}`	要拖放文件，请在 XWayland 下启动 qDesinger：`{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	或将 首选项 › 性能 › Linux 显示服务器 设为 X11：qDesinger 将始终在 XWayland 下启动。
+ 	Edit › Paste	“编辑 › 粘贴”
+ 	Duplicate Layers…	复制图层…
+ 	Duplicate style	复制样式
+@@ -1269,8 +1269,8 @@
+ 	Perspective Warp is not active	透视变形尚未启用
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	透视变形：沿图像透视绘制平面，然后切换到变形
+ 	Photo Filter	照片滤镜
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	由 PhotoCraft 管理颜色
++	qDesinger	qDesinger
++	qDesinger Manages Colors	由 qDesinger 管理颜色
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — 用 Rust 编写的开源原生图像编辑器。
+ 	Pin Depth:	控制点深度：
+ 	Pixel Length:	像素长度：
+@@ -1347,11 +1347,11 @@
+ 	Import Shortcuts…	导入快捷键…
+ 	Load a keyboard shortcut set saved as .kys	载入保存为 .kys 的键盘快捷键集
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	已从 {file} 导入 {n} 个快捷键。点击“确定”保留。
+-	{n} commands are not in PhotoCraft.	{n} 个命令在 PhotoCraft 中不存在。
++	{n} commands are not in qDesinger.	{n} 个命令在 qDesinger 中不存在。
+ 	Keyboard shortcuts imported	已导入键盘快捷键
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	此处正在使用你的键盘快捷键集 {set}：{n} 个快捷键与默认值不同。可在“编辑 › 键盘快捷键”中查看；“全部重置为默认值”可撤销。
+ 	Import keyboard shortcuts?	导入键盘快捷键？
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft 在这台电脑上找到了你在其他图像编辑器中的键盘快捷键集 {set}：其中 {n} 个快捷键与 PhotoCraft 不同。要导入吗？
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger 在这台电脑上找到了你在其他图像编辑器中的键盘快捷键集 {set}：其中 {n} 个快捷键与 qDesinger 不同。要导入吗？
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	“编辑 › 键盘快捷键 › 全部重置为默认值”可撤销导入。
+ 	Don't Import	不导入
+ 	The keyboard shortcut set was not imported: {error}	未导入键盘快捷键集：{error}
+@@ -1579,7 +1579,7 @@
+ 	Current Tool	当前工具
+ 	Custom Shape Tool	自定形状工具
+ 	Cyans	青色
+-	Default PhotoCraft Size	默认 PhotoCraft 大小
++	Default qDesinger Size	默认 qDesinger 大小
+ 	Delete Workspace	删除工作区
+ 	Diamond	菱形
+ 	Dimensions:	尺寸：
+@@ -2060,7 +2060,7 @@
+ 	System Info	系统信息
+ 	More panels	更多面板
+ 	More documents	更多文档
+-	These settings aren't available in PhotoCraft yet.	PhotoCraft 暂不支持这些设置。
++	These settings aren't available in qDesinger yet.	qDesinger 暂不支持这些设置。
+ 	Graphics	图形
+ 	Reset GPU Backend	重置 GPU 后端
+ 	Applies at next launch.	下次启动时生效。
+@@ -2166,7 +2166,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	自动模式会在可用时使用 GPU 加速，出错时改用 CPU 渲染。
+ 	Switched to CPU rendering	已切换到 CPU 渲染
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPU 加速无法继续。您的文档未更改。
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft 正在使用 CPU 合成图像。窗口仍可能使用您的显卡。
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger 正在使用 CPU 合成图像。窗口仍可能使用您的显卡。
+ 	Retry GPU requires a restart. Save your work first.	重试 GPU 需要重新启动。请先保存您的工作。
+ 	Keep Using CPU	继续使用 CPU
+ 	Retry GPU	重试 GPU
+@@ -2357,7 +2357,7 @@
+ 	Color to Alpha…	颜色转为 Alpha…
+ 	Transparency Threshold	透明度阈值
+ 	Opacity Threshold	不透明度阈值
+-	PhotoCraft — Screen Color Picker	PhotoCraft — 屏幕取色器
++	qDesinger — Screen Color Picker	qDesinger — 屏幕取色器
+ 
+ 	Rasterize svg groups deeper than	栅格化超过此深度的 SVG 组
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	设为 0 可关闭此阈值；嵌套超过 100 层的 SVG 组始终会被栅格化。
+--- a/crates/ui-egui/src/i18n/zh-hant.tsv
++++ b/crates/ui-egui/src/i18n/zh-hant.tsv
+@@ -731,7 +731,7 @@
+ 	Timeline	時間軸
+ 	Tool Presets	工具預設集
+ 	Tools	工具
+-	About PhotoCraft	關於 PhotoCraft
++	About qDesinger	關於 qDesinger
+ 	PhotoCraft Website	PhotoCraft 網站
+ 	PhotoCraft on GitHub	GitHub 上的 PhotoCraft
+ 	ArtCraft Website	ArtCraft 網站
+@@ -785,7 +785,7 @@
+ 	All Caps	全部大寫
+ 	All Slices	所有切片
+ 	All User Slices	所有使用者切片
+-	All shortcuts reset to PhotoCraft defaults.	所有快速鍵已重設為 PhotoCraft 預設值。
++	All shortcuts reset to qDesinger defaults.	所有快速鍵已重設為 qDesinger 預設值。
+ 	Alt	Alt
+ 	Always use pressure for opacity	一律以壓力控制不透明度
+ 	Always use pressure for size	一律以壓力控制大小
+@@ -1021,8 +1021,8 @@
+ 	Drop an image or PSD anywhere to open it.	將影像或 PSD 拖放到任何位置即可開啟。
+ 	Native file drag-and-drop is unavailable	Wayland 不支援原生檔案拖放
+ 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Wayland 尚未支援原生檔案拖放。請使用「檔案 › 開啟」，或在檔案管理員中複製影像後使用 {paste} 貼上。
+-	To drop files, start PhotoCraft under XWayland: `{command}`	若要拖放檔案，請在 XWayland 下啟動 PhotoCraft：`{command}`
+-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	或將 偏好設定 › 效能 › Linux 顯示伺服器 設為 X11：PhotoCraft 之後一律在 XWayland 下啟動。
++	To drop files, start qDesinger under XWayland: `{command}`	若要拖放檔案，請在 XWayland 下啟動 qDesinger：`{command}`
++	Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.	或將 偏好設定 › 效能 › Linux 顯示伺服器 設為 X11：qDesinger 之後一律在 XWayland 下啟動。
+ 	Edit › Paste	「編輯 › 貼上」
+ 	Duplicate Layers…	複製圖層…
+ 	Duplicate style	複製樣式
+@@ -1267,8 +1267,8 @@
+ 	Perspective Warp is not active	透視彎曲未啟用
+ 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	透視彎曲：沿影像透視繪製平面，然後切換到彎曲
+ 	Photo Filter	相片濾鏡
+-	PhotoCraft	PhotoCraft
+-	PhotoCraft Manages Colors	PhotoCraft 管理色彩
++	qDesinger	qDesinger
++	qDesinger Manages Colors	qDesinger 管理色彩
+ 	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — 以 Rust 撰寫的開放原始碼原生影像編輯器。
+ 	Pin Depth:	圖釘深度：
+ 	Pixel Length:	像素長度：
+@@ -1345,11 +1345,11 @@
+ 	Import Shortcuts…	匯入快速鍵…
+ 	Load a keyboard shortcut set saved as .kys	載入儲存為 .kys 的鍵盤快速鍵集
+ 	Imported {n} shortcuts from {file}. Click OK to keep them.	已從 {file} 匯入 {n} 個快速鍵。按一下「確定」即可保留。
+-	{n} commands are not in PhotoCraft.	{n} 個命令在 PhotoCraft 中不存在。
++	{n} commands are not in qDesinger.	{n} 個命令在 qDesinger 中不存在。
+ 	Keyboard shortcuts imported	已匯入鍵盤快速鍵
+ 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	此處正在使用你的鍵盤快速鍵集 {set}：{n} 個快速鍵與預設值不同。可在「編輯 › 鍵盤快速鍵」中查看；「全部重設為預設值」可復原。
+ 	Import keyboard shortcuts?	匯入鍵盤快速鍵？
+-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft 在這台電腦上找到你在其他影像編輯器中的鍵盤快速鍵集 {set}：其中 {n} 個快速鍵與 PhotoCraft 不同。要匯入嗎？
++	qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?	qDesinger 在這台電腦上找到你在其他影像編輯器中的鍵盤快速鍵集 {set}：其中 {n} 個快速鍵與 qDesinger 不同。要匯入嗎？
+ 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	「編輯 › 鍵盤快速鍵 › 全部重設為預設值」可復原匯入。
+ 	Don't Import	不匯入
+ 	The keyboard shortcut set was not imported: {error}	未匯入鍵盤快速鍵集：{error}
+@@ -1574,7 +1574,7 @@
+ 	Current Tool	目前工具
+ 	Custom Shape Tool	自訂形狀工具
+ 	Cyans	青色系
+-	Default PhotoCraft Size	預設 PhotoCraft 尺寸
++	Default qDesinger Size	預設 qDesinger 尺寸
+ 	Delete Workspace	刪除工作區
+ 	Diamond	菱形
+ 	Dimensions:	尺寸：
+@@ -2000,7 +2000,7 @@
+ 	System Info	系統資訊
+ 	More panels	更多面板
+ 	More documents	更多文件
+-	These settings aren't available in PhotoCraft yet.	這些設定在 PhotoCraft 中尚未提供。
++	These settings aren't available in qDesinger yet.	這些設定在 qDesinger 中尚未提供。
+ 	Graphics	圖形
+ 	Reset GPU Backend	重設 GPU 後端
+ 	Applies at next launch.	下次啟動時套用。
+@@ -2111,7 +2111,7 @@
+ 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	自動模式會在可用時使用 GPU 加速，發生錯誤時改用 CPU 渲染。
+ 	Switched to CPU rendering	已改用 CPU 渲染
+ 	GPU acceleration could not continue. Your documents are unchanged.	GPU 加速無法繼續。您的文件未變更。
+-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft 正使用 CPU 合成影像。視窗仍可能使用您的顯示卡。
++	qDesinger is using the CPU image compositor. The window may still use your graphics adapter.	qDesinger 正使用 CPU 合成影像。視窗仍可能使用您的顯示卡。
+ 	Retry GPU requires a restart. Save your work first.	重試 GPU 需要重新啟動。請先儲存您的工作。
+ 	Keep Using CPU	繼續使用 CPU
+ 	Retry GPU	重試 GPU
+@@ -2327,7 +2327,7 @@
+ 	Color to Alpha…	顏色轉為 Alpha…
+ 	Transparency Threshold	透明度臨界值
+ 	Opacity Threshold	不透明度臨界值
+-	PhotoCraft — Screen Color Picker	PhotoCraft — 螢幕取色器
++	qDesinger — Screen Color Picker	qDesinger — 螢幕取色器
+ 
+ 	Rasterize svg groups deeper than	點陣化超過此深度的 SVG 群組
+ 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	設為 0 可關閉此臨界值；巢狀超過 100 層的 SVG 群組一律會點陣化。
+--- a/crates/ui-egui/src/kys_import.rs
++++ b/crates/ui-egui/src/kys_import.rs
+@@ -58,7 +58,7 @@
+     if !plan.unknown.is_empty() {
+         let u = plan.unknown.len().to_string();
+         message.push(' ');
+-        message.push_str(&crate::i18n::fmt(tl!("{n} commands are not in PhotoCraft."), &[("n", &u)]));
++        message.push_str(&crate::i18n::fmt(tl!("{n} commands are not in qDesinger."), &[("n", &u)]));
+     }
+     f.insert("tab".into(), json!(0));
+     f.insert("overrides".into(), json!(overrides));
+@@ -182,7 +182,7 @@
+     let n = offer.changes.to_string();
+     let line = crate::i18n::fmt(
+         tl!(
+-            "PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?"
++            "qDesinger found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from qDesinger's. Import it?"
+         ),
+         &[("set", &offer.set), ("n", &n)],
+     );
+--- a/crates/ui-egui/src/kys_import_tests.rs
++++ b/crates/ui-egui/src/kys_import_tests.rs
+@@ -142,7 +142,7 @@
+     assert!(overrides.get("select.all").is_none(), "already the default: {overrides}");
+     assert!(overrides.get("view.zoomIn").is_none(), "Cmd+= is among the keys, so the default stays: {overrides}");
+     let message = field(&h, "message");
+-    assert_eq!(message, json!("Imported 9 shortcuts from texcuts.kys. Click OK to keep them. 2 commands are not in PhotoCraft."));
++    assert_eq!(message, json!("Imported 9 shortcuts from texcuts.kys. Click OK to keep them. 2 commands are not in qDesinger."));
+     assert_eq!(field(&h, "capture"), json!(false));
+     // Nothing is applied until OK.
+     assert_eq!(crate::shortcuts::effective_shortcut(h.state(), "edit.undo", Some("Cmd+Z")).as_deref(), Some("Cmd+Shift+Z"));
+--- a/crates/ui-egui/src/lib.rs
++++ b/crates/ui-egui/src/lib.rs
+@@ -15,6 +15,7 @@
+ }
+ 
+ pub mod actions;
++mod actions_library;
+ pub mod adjust_dialog;
+ pub mod adjust_editors;
+ pub mod adjust_preview;
+--- a/crates/ui-egui/src/menus.rs
++++ b/crates/ui-egui/src/menus.rs
+@@ -85,7 +85,7 @@
+     ("help.github", "PhotoCraft on GitHub", &["Help"], None),
+     ("help.reportIssue", "Report an Issue…", &["Help"], None),
+     ("help.systemInfo", "System Info…", &["Help"], None),
+-    ("help.about", "About PhotoCraft", &["Help"], None),
++    ("help.about", "About qDesinger", &["Help"], None),
+ ];
+ 
+ /// Photoshop's Window › <panel> ids for the panels the shell already has, as `window.toggle.*`.
+@@ -1651,7 +1651,7 @@
+                 }
+                 h.run_steps(3);
+             };
+-            let open = |h: &Harness<'_, PhotocraftApp>| h.query_by_label_contains("About PhotoCraft").is_some();
++            let open = |h: &Harness<'_, PhotocraftApp>| h.query_by_label_contains("About qDesinger").is_some();
+             let field_id = egui::Id::new("help-menu-search").with("field");
+             let help = h.get_by_label("Help").rect().center();
+             click(&mut h, help);
+--- a/crates/ui-egui/src/native_menu.rs
++++ b/crates/ui-egui/src/native_menu.rs
+@@ -3,16 +3,16 @@
+ //!
+ //! Pure and platform-free, so it is tested everywhere and builds for the web; only the backend
+ //! touches AppKit. What the layout does ([`mac_layout`]):
+-//! - an **app menu** named PhotoCraft: About (from Help), Settings (Edit › Preferences), Language,
++//! - an **app menu** named qDesinger: About (from Help), Settings (Edit › Preferences), Language,
+ //!   Appearance (Window › Theme), Services, Hide, Hide Others, Show All and Quit (File › Exit,
+ //!   still the app's own `file.exit` so the unsaved-changes prompt runs). The other Craft apps
+ //!   use the same app menu;
+ //! - **Window** gets Minimize, Zoom and Bring All to Front, and **Help** the system search field;
+-//! - **clashes** with the system's keys (⌘H, ⌘M, ⌘W, ⌘,) are resolved in PhotoCraft's favour, and
++//! - **clashes** with the system's keys (⌘H, ⌘M, ⌘W, ⌘,) are resolved in qDesinger's favour, and
+ //!   reported; Hide and Minimize move to ⌃⌘H and ⌃⌘M, as Photoshop does.
+ //!
+ //! **Keys stay with egui.** AppKit runs a menu's key equivalents before the window sees the key,
+-//! which would skip PhotoCraft's key rules (text fields keep ⌘C/⌘V/⌘Z, dialogs and Camera Raw are
++//! which would skip qDesinger's key rules (text fields keep ⌘C/⌘V/⌘Z, dialogs and Camera Raw are
+ //! modal, Liquify has its own ⌘Z). So the backend reports a key equivalent as [`Event::Key`], and
+ //! [`NativeMenu::raw_input`] feeds it to egui as the key press it was: the shortcut runs through
+ //! [`crate::shortcuts::handle`] exactly as without a native menu. A click is [`Event::Click`] and
+@@ -27,7 +27,7 @@
+ use crate::i18n::{Lang, tr, tr_id};
+ use crate::menus::MenuItem;
+ 
+-pub const APP_NAME: &str = "PhotoCraft";
++pub const APP_NAME: &str = "qDesinger";
+ 
+ #[derive(Clone, Debug, Default, PartialEq)]
+ pub struct MenuBar {
+@@ -102,7 +102,7 @@
+     CloseWindow,
+ }
+ 
+-/// Hide PhotoCraft: a custom item (the predefined one always takes ⌘H, which is View › Extras).
++/// Hide qDesinger: a custom item (the predefined one always takes ⌘H, which is View › Extras).
+ pub const HIDE: &str = "app.hide";
+ /// Minimize: a custom item (the predefined one always takes ⌘M, which is Curves).
+ pub const MINIMIZE: &str = "window.minimize";
+@@ -263,7 +263,7 @@
+ 
+ // ----------------------------------------------------------------------------- shortcuts
+ 
+-/// A shortcut as PhotoCraft writes it (`Cmd+Shift+Z`). `Cmd` is ⌘ and `Ctrl` the Control key,
++/// A shortcut as qDesinger writes it (`Cmd+Shift+Z`). `Cmd` is ⌘ and `Ctrl` the Control key,
+ /// never folded together: ⌃⌘M and ⌘M are different shortcuts.
+ #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+ pub struct Chord {
+@@ -339,13 +339,13 @@
+ 
+ // ----------------------------------------------------------------------------- macOS layout
+ 
+-/// A system key equivalent PhotoCraft already uses for something else.
++/// A system key equivalent qDesinger already uses for something else.
+ #[derive(Clone, Debug, PartialEq)]
+ pub struct Clash {
+     pub shortcut: &'static str,
+     /// What macOS uses it for.
+     pub system: &'static str,
+-    /// The PhotoCraft command bound to it.
++    /// The qDesinger command bound to it.
+     pub command: String,
+     /// What the layout did about it.
+     pub resolution: &'static str,
+@@ -356,7 +356,7 @@
+     pub clashes: Vec<Clash>,
+ }
+ 
+-/// Turn PhotoCraft's menus (tagged with roles) into a Mac menu bar. See the module docs.
++/// Turn qDesinger's menus (tagged with roles) into a Mac menu bar. See the module docs.
+ pub fn mac_layout(bar: &MenuBar, lang: Lang) -> Layout {
+     let mut bar = bar.clone();
+     let mut clashes = Vec::new();
+@@ -462,7 +462,7 @@
+ }
+ 
+ /// Settings in the app menu: Edit › Preferences, a submenu of settings pages, becomes "Settings"
+-/// with ⌘, on its first page unless PhotoCraft binds ⌘, elsewhere.
++/// with ⌘, on its first page unless qDesinger binds ⌘, elsewhere.
+ fn settings_node(node: Node, comma_taken: Option<String>, lang: Lang, clashes: &mut Vec<Clash>) -> Node {
+     if let Some(command) = &comma_taken {
+         clashes.push(Clash { shortcut: "Cmd+,", system: "Settings", command: command.clone(), resolution: "Settings has no shortcut" });
+@@ -568,7 +568,7 @@
+     }
+ }
+ 
+-/// PhotoCraft's menus as a Mac menu bar, in the UI language; `language` is the
++/// qDesinger's menus as a Mac menu bar, in the UI language; `language` is the
+ /// `interface.language` preference (`auto` or a code), checked in the app menu's Language.
+ pub fn photocraft_layout(items: &[MenuItem], lang: Lang, language: &str) -> Layout {
+     let mut bar = from_items(&crate::menus::TOP_MENUS, items);
+@@ -615,7 +615,7 @@
+     fn drain(&mut self) -> Vec<Event>;
+ }
+ 
+-/// The native menu bar, while PhotoCraft uses one (the in-window menus are hidden then).
++/// The native menu bar, while qDesinger uses one (the in-window menus are hidden then).
+ pub struct NativeMenu {
+     backend: Box<dyn Backend>,
+     /// Hash of the state the menus were last built from.
+@@ -696,7 +696,7 @@
+     let Some(menu) = app.services.native_menu.as_mut() else { return };
+     if !menu.logged {
+         for c in &layout.clashes {
+-            log::info!("menu: {} is {} on macOS and {} in PhotoCraft; {}", c.shortcut, c.system, c.command, c.resolution);
++            log::info!("menu: {} is {} on macOS and {} in qDesinger; {}", c.shortcut, c.system, c.command, c.resolution);
+         }
+         menu.logged = true;
+     }
+@@ -767,7 +767,7 @@
+     fn photocraft_gets_a_mac_app_menu() {
+         let l = layout(true);
+         let app = &l.bar.menus[0];
+-        assert_eq!((app.title.as_str(), app.role), ("PhotoCraft", MenuRole::App));
++        assert_eq!((app.title.as_str(), app.role), ("qDesinger", MenuRole::App));
+         assert_eq!(
+             ids(&app.children),
+             [
+@@ -787,8 +787,8 @@
+             ]
+         );
+         let quit = l.bar.find("file.exit").unwrap();
+-        assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit PhotoCraft", Some("Cmd+Q")));
+-        assert_eq!(l.bar.find("help.about").unwrap().label, "About PhotoCraft");
++        assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit qDesinger", Some("Cmd+Q")));
++        assert_eq!(l.bar.find("help.about").unwrap().label, "About qDesinger");
+     }
+ 
+     #[test]
+@@ -799,10 +799,10 @@
+         assert!(!ids(&by("Help").children).contains(&"help.about".to_string()));
+         assert!(!ids(&by("Edit").children).contains(&"[Preferences]".to_string()));
+         let titles: Vec<&str> = l.bar.menus.iter().map(|m| m.title.as_str()).collect();
+-        assert_eq!(titles, ["PhotoCraft", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
+-    }
+-
+-    /// PhotoCraft keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
++        assert_eq!(titles, ["qDesinger", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
++    }
++
++    /// qDesinger keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
+     #[test]
+     fn clashes_are_resolved_in_photocrafts_favour() {
+         let l = layout(true);
+@@ -948,7 +948,7 @@
+         }
+     }
+ 
+-    /// A key equivalent reaches PhotoCraft's own key handling as the key press it was, so the
++    /// A key equivalent reaches qDesinger's own key handling as the key press it was, so the
+     /// shortcut runs once, through the same rules as without a native menu.
+     #[test]
+     fn key_equivalents_run_through_the_normal_shortcut_path() {
+--- a/crates/ui-egui/src/new_doc_ui.rs
++++ b/crates/ui-egui/src/new_doc_ui.rs
+@@ -14,7 +14,7 @@
+ 
+ /// Photoshop's New Document categories and their blank-document presets.
+ pub const CATEGORIES: &[(&str, &[Preset])] = &[
+-    ("Recent", &[("Default PhotoCraft Size", 2100, 1500, 300.0), ("HDTV 1080p", 1920, 1080, 72.0)]),
++    ("Recent", &[("Default qDesinger Size", 2100, 1500, 300.0), ("HDTV 1080p", 1920, 1080, 72.0)]),
+     (
+         "Photo",
+         &[
+@@ -1019,7 +1019,7 @@
+             let heading = h.get_by_label_contains("BLANK DOCUMENT PRESETS").rect();
+             // Pick the second card, then the first (Clipboard) again.
+             click_at(&mut h, heading.left_bottom() + egui::vec2(80.0 + 172.0, 60.0));
+-            assert_eq!(fields(&h).get("__preset").and_then(|v| v.as_str()), Some("Default PhotoCraft Size"));
++            assert_eq!(fields(&h).get("__preset").and_then(|v| v.as_str()), Some("Default qDesinger Size"));
+             click_at(&mut h, heading.left_bottom() + egui::vec2(80.0, 60.0));
+             assert_eq!(fields(&h).get("__preset").and_then(|v| v.as_str()), Some(super::super::CLIPBOARD));
+             enter(&mut h);
+--- a/crates/ui-egui/src/notices.rs
++++ b/crates/ui-egui/src/notices.rs
+@@ -81,9 +81,9 @@
+     ];
+     let mut args = vec![("paste".to_owned(), paste_hint(app))];
+     if let Some(command) = &app.services.xwayland_command {
+-        lines.push("To drop files, start PhotoCraft under XWayland: `{command}`".to_owned());
++        lines.push("To drop files, start qDesinger under XWayland: `{command}`".to_owned());
+         args.push(("command".to_owned(), command.clone()));
+-        lines.push("Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.".to_owned());
++        lines.push("Or set Preferences › Performance › Linux display server to X11: qDesinger then always starts under XWayland.".to_owned());
+     }
+     let id = post(app, "Native file drag-and-drop is unavailable", lines, false, Some(WAYLAND_FILE_DROP_DISMISSED));
+     if let Some(notice) = app.ui.notices.iter_mut().find(|notice| notice.id == id) {
+--- a/crates/ui-egui/src/panels.rs
++++ b/crates/ui-egui/src/panels.rs
+@@ -520,7 +520,7 @@
+                 let max = ui.ctx().input(|i| i.viewport().maximized.unwrap_or(false));
+                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(!max));
+             }
+-            let title = app.session.active().map(|d| format!("{}{}", d.doc.name, if d.is_dirty() { "  •" } else { "" })).unwrap_or_else(|| "PhotoCraft".into());
++            let title = app.session.active().map(|d| format!("{}{}", d.doc.name, if d.is_dirty() { "  •" } else { "" })).unwrap_or_else(|| "qDesinger".into());
+             // The menus and the right-hand controls are laid out first; the title is centred in
+             // whatever room is left between them, shortened or dropped rather than drawn over them.
+             let (mut menus_right, mut controls_left) = (full.left(), full.right());
+@@ -632,7 +632,7 @@
+ /// marks unsaved changes, like the `•` in the app-drawn title), or just the app name with no
+ /// document open.
+ pub fn window_title(app: &PhotocraftApp) -> String {
+-    app.session.active().map(|d| format!("{}{} \u{2014} PhotoCraft", if d.is_dirty() { "*" } else { "" }, d.doc.name)).unwrap_or_else(|| "PhotoCraft".into())
++    app.session.active().map(|d| format!("{}{} \u{2014} qDesinger", if d.is_dirty() { "*" } else { "" }, d.doc.name)).unwrap_or_else(|| "qDesinger".into())
+ }
+ 
+ /// Keep the OS window title (and the taskbar / Alt-Tab entry) on the active file. Sends
+@@ -709,19 +709,19 @@
+ 
+     #[test]
+     fn window_title_with_no_document_is_the_app_name() {
+-        assert_eq!(window_title(&app(true)), "PhotoCraft");
++        assert_eq!(window_title(&app(true)), "qDesinger");
+     }
+ 
+     #[test]
+     fn window_title_follows_the_active_file() {
+         let mut app = app(true);
+         open_named(&mut app, "foo.psd");
+-        assert_eq!(window_title(&app), "foo.psd \u{2014} PhotoCraft");
++        assert_eq!(window_title(&app), "foo.psd \u{2014} qDesinger");
+         // Unsaved changes gain a `*` prefix, like the `•` in the app-drawn title.
+         if let Some(st) = app.session.active_mut() {
+             st.revision += 1;
+         }
+-        assert_eq!(window_title(&app), "*foo.psd \u{2014} PhotoCraft");
++        assert_eq!(window_title(&app), "*foo.psd \u{2014} qDesinger");
+     }
+ 
+     #[test]
+@@ -759,11 +759,11 @@
+         let ctx = egui::Context::default();
+         crate::PhotocraftApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+         super::sync_window_title(&mut app, &ctx);
+-        assert_eq!(app.last_window_title, "PhotoCraft");
++        assert_eq!(app.last_window_title, "qDesinger");
+         let mut out = ctx.run_ui(egui::RawInput::default(), |_| {});
+         out.textures_delta.clear();
+         let cmds = out.viewport_output.remove(&egui::ViewportId::ROOT).map(|v| v.commands).unwrap_or_default();
+-        assert!(cmds.iter().any(|c| matches!(c, egui::ViewportCommand::Title(t) if t == "PhotoCraft")), "{cmds:?}");
++        assert!(cmds.iter().any(|c| matches!(c, egui::ViewportCommand::Title(t) if t == "qDesinger")), "{cmds:?}");
+         // Same document state again: the cached title stops a repeat command.
+         super::sync_window_title(&mut app, &ctx);
+         let mut out = ctx.run_ui(egui::RawInput::default(), |_| {});
+@@ -772,7 +772,7 @@
+         assert!(!cmds.iter().any(|c| matches!(c, egui::ViewportCommand::Title(_))), "repeat Title: {cmds:?}");
+         open_named(&mut app, "foo.psd");
+         super::sync_window_title(&mut app, &ctx);
+-        assert_eq!(app.last_window_title, "foo.psd \u{2014} PhotoCraft");
++        assert_eq!(app.last_window_title, "foo.psd \u{2014} qDesinger");
+     }
+ }
+ 
+@@ -1459,16 +1459,17 @@
+ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+     let t = Tokens::get(ui.ctx());
+     let p = app.ui.panels.clone();
+-    if t.pro {
++    if t.pro || app.ui.dock.actions_in_rail {
+         dock_panels(app, ui, &p, &t);
+     }
+     // Narrow icon rail, unless an embedding app hides it: shows, expands or collapses panel groups.
+-    if p.rail {
++    if p.rail && !app.ui.dock.actions_in_rail {
+         let (rw, rb) = if t.pro { (36.0, 28.0) } else { (44.0, 32.0) };
+         egui::Panel::right("rail").resizable(false).exact_size(rw).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(4, 8))).show(
+             ui,
+             |ui| {
+                 let r = ui.max_rect();
++                crate::dock::remember_rail_rect(ui.ctx(), r.expand2(vec2(4.0, 8.0)));
+                 ui.painter().line_segment([r.left_top() - vec2(6.0, 8.0), r.left_bottom() + vec2(-6.0, 8.0)], Stroke::new(1.0, t.separator));
+                 ui.spacing_mut().item_spacing.y = 4.0;
+                 use crate::dock::Group;
+@@ -1490,9 +1491,10 @@
+             },
+         );
+     }
+-    if !t.pro {
++    if !t.pro && !app.ui.dock.actions_in_rail {
+         dock_panels(app, ui, &p, &t);
+     }
++    crate::dock::actions_rail_column(app, ui);
+     crate::dock::persist(app, ui.ctx());
+ }
+ 
+@@ -2640,7 +2642,7 @@
+     crate::channels_panel::show(app, ui);
+ }
+ 
+-fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
++pub(crate) fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+     let t = Tokens::get(ui.ctx());
+     let Some(st) = app.session.active() else {
+         empty(ui, tl!("No document"));
+--- a/crates/ui-egui/src/prefs_ui.rs
++++ b/crates/ui-egui/src/prefs_ui.rs
+@@ -401,7 +401,7 @@
+                 app.ui.status = format!("Couldn't save preferences: {e}. Retrying…");
+                 app.ui.status_error = true;
+             } else if failures == SAVE_NOTICE_AFTER {
+-                let lines = vec![e, "PhotoCraft keeps retrying; until a save succeeds, preference changes are lost when it closes.".into()];
++                let lines = vec![e, "qDesinger keeps retrying; until a save succeeds, preference changes are lost when it closes.".into()];
+                 let id = crate::notices::post(app, "Preferences can't be saved", lines, true, None);
+                 app.prefs_rt.save_retry.notice = Some(id);
+             }
+@@ -1063,7 +1063,7 @@
+                     f.get("__order").and_then(|o| o.get(&section)).and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
+                 if !has_visible_fields(&values, &section) {
+                     ui.add_space(4.0);
+-                    ui.label(RichText::new(tl!("These settings aren't available in PhotoCraft yet.")).color(t.text_faint));
++                    ui.label(RichText::new(tl!("These settings aren't available in qDesinger yet.")).color(t.text_faint));
+                 } else if let Some(obj) = values.get_mut(&section).and_then(Value::as_object_mut) {
+                     section_fields(ui, &section, obj, &order, lang, system, filter);
+                     if section == "fileHandling" {
+@@ -1372,7 +1372,7 @@
+                     let c = prefs::parse_hex(s).unwrap_or([128, 128, 128]);
+                     let mut rgb = c;
+                     ui.horizontal(|ui| {
+-                        // PhotoCraft's Color Picker, as everywhere else (#2144).
++                        // qDesinger's Color Picker, as everywhere else (#2144).
+                         if crate::widgets::color_swatch_button(ui, egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2]), &label).clicked() {
+                             ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new(PICK_ID), (path.clone(), label.clone())));
+                         }
+@@ -1603,7 +1603,7 @@
+             }
+             if ui.button(tl!("Reset All to Defaults")).clicked() {
+                 overrides.clear();
+-                message = tl!("All shortcuts reset to PhotoCraft defaults.").into();
++                message = tl!("All shortcuts reset to qDesinger defaults.").into();
+             }
+             // A Photoshop set (`.kys`) fills the overrides; the file arrives after this frame
+             // and `kys_import` writes the dialog's fields then (#1163).
+@@ -2069,7 +2069,7 @@
+         appearance_frame(&mut app, &ctx, Some(egui::Theme::Light));
+         assert_palette(&ctx, ThemeKind::StudioLight);
+         assert_eq!(app.session.prefs().interface.appearance_mode, AppearanceMode::Auto);
+-        // A restored pin must also clear when the concrete PhotoCraft palette stays the same.
++        // A restored pin must also clear when the concrete qDesinger palette stays the same.
+         ctx.set_theme(egui::ThemePreference::Dark);
+         appearance_frame(&mut app, &ctx, Some(egui::Theme::Light));
+         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
+--- a/crates/ui-egui/src/screen_picker.rs
++++ b/crates/ui-egui/src/screen_picker.rs
+@@ -261,7 +261,7 @@
+         let shared = r.clone();
+         let vid = egui::ViewportId::from_hash_of(("screen-color", generation, n));
+         let mut builder = egui::ViewportBuilder::default()
+-            .with_title(tl!("PhotoCraft — Screen Color Picker"))
++            .with_title(tl!("qDesinger — Screen Color Picker"))
+             .with_decorations(false)
+             .with_resizable(false)
+             .with_position(image.position / ctx.zoom_factor())
+--- a/crates/ui-egui/src/view_cmds.rs
++++ b/crates/ui-egui/src/view_cmds.rs
+@@ -371,6 +371,9 @@
+         && LAYOUTS.contains(&k)
+     {
+         return Some(o.arrange == k);
++    }
++    if matches!(id, "window.panel.actions" | "window.panel.history") && app.ui.dock.actions_in_rail {
++        return Some(app.ui.dock.actions_rail_open && app.ui.dock.actions_rail_history == (id == "window.panel.history"));
+     }
+     if let Some((panel, tab)) = panel_tab(app, id) {
+         let (p, t) = (&app.ui.panels, &app.ui.dock_tabs);
+@@ -481,6 +484,14 @@
+ }
+ 
+ fn run(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value) -> Result<Value, String> {
++    if matches!(id, "window.panel.actions" | "window.panel.history") && app.ui.dock.actions_in_rail {
++        let history = id == "window.panel.history";
++        app.ui.dock.actions_rail_open = flag_param(p, app.ui.dock.actions_rail_open && app.ui.dock.actions_rail_history == history);
++        app.ui.dock.actions_rail_history = history;
++        app.ui.panels.rail = true;
++        app.ui.panels.dock = true;
++        return Ok(json!({"panel": "actionsRail", "visible": app.ui.dock.actions_rail_open}));
++    }
+     if let Some((panel, tab)) = panel_tab(app, id) {
+         let group = crate::dock::Group::from_key(panel);
+         let collapsed = group.is_some_and(|g| app.ui.dock.is_collapsed(g));
