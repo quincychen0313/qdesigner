@@ -1,0 +1,31 @@
+qDesinger — Hostinger 上傳版
+
+1. 適用 Hostinger 可管理檔案的 Web／Cloud 主機，不是 Website Builder 編輯器。
+2. 到目標網站的檔案管理員，開啟 public_html；可先建立 qdesinger 子資料夾，避免覆蓋其他網站。
+3. 上傳本 ZIP 並解壓縮，確認 index.html、.htaccess、JS、WASM、mjs 及 licenses 都在同一網站目錄中。
+4. 若放在 public_html，開啟你的網域；若放在 public_html/qdesinger，開啟 https://你的網域/qdesinger/。
+5. 使用 HTTPS。這是靜態網站，不需要 Node.js、Rust、PHP 程式或資料庫。
+6. 若主機隱藏 .htaccess，請開啟顯示隱藏檔；本檔設定 WASM/MJS MIME 與快取。
+更新既有網站前，請先備份原本同名檔案。
+
+官方檔案管理說明：https://www.hostinger.com/support/4548688-basic-actions-in-the-file-manager-in-hostinger/
+
+## 使用與資料保存
+以 HTTPS 網址開啟，請勿直接雙擊 index.html。需要支援 WebGPU 或 WebGL2 的瀏覽器；若無法開啟，可在網址後加 ?webgl 使用相容模式。
+圖片編輯在使用者的裝置上進行。專案、圖片請自行另存或匯出，這個版本沒有文件自動復原或跨裝置同步。
+換到新的網域後，瀏覽器儲存的個人設定與自訂 Actions 不會自動搬過去。
+本站檔案沒有附加登入保護；若需要私人使用，請另設主機存取限制。
+
+## 版本
+qDesinger，來源提交 cbd2cfddb964940a4b1f25b0b30df9902223ba0d。
+包含 Actions 分類側欄、寬度保存修正、26 個內建 Actions、PDF 匯出及 qDesinger 更名。
+沿用 PhotoCraft 0.7.0 引擎。授權及原作者資訊保留在 LICENSE-MIT、LICENSE-APACHE、NOTICE、ATTRIBUTION.md 與 licenses/。
+此交付包已檢查檔案完整性、JS/WASM 配對及載入雜湊；尚未在你的 GitHub／Hostinger 帳戶實際上線測試。
+
+2026-10-15 更新：首頁與關於視窗已移除 Discord 按鈕及 PhotoCraft website、GitHub、ArtCraft 連結列。請覆蓋上傳本包全部網站檔案，包含 index.html 和新版 JS/WASM；完成後重新整理網頁。
+
+## 載入修復版（2026-10-15）
+引擎改為四個 .bin 分段，每檔最多 8 MiB；請務必全部上傳。網站不再需要單一大型 .wasm 檔。首頁顯示分段下載進度，並檢查 SHA-256；檔案缺失會顯示明確錯誤。
+上傳時，index.html、engine-loader 開頭的 .mjs、photocraft-web 開頭的 .js 與四個 .bin，以及原有的其他網站檔案，必須放在同一個網站資料夾。請不要只上傳 ZIP，也不要只上傳 index.html。
+GitHub：覆蓋目前網站 index.html 所在的資料夾（依你的 Pages 設定，可能是根目錄或 docs）。不必上傳 native。Hostinger：解壓縮後覆蓋目前網站資料夾。
+已測試：分段還原與有效 WebAssembly、SHA-256、缺檔 404、檔案截斷及損壞處理。瀏覽器畫面測試因環境限制未完成。
