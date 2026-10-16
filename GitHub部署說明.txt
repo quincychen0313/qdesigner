@@ -1,0 +1,11 @@
+qDesinger GitHub 完整網頁版 — 20261016-load-fix
+
+1. 解壓縮本 ZIP。
+2. 將全部內容覆蓋上傳至 quincychen0313/qdesigner 的 docs 資料夾。
+3. GitHub Pages 設為正確分支的 /docs，部署完成後重新整理。若仍顯示舊版，可使用 https://quincychen0313.github.io/qdesigner/?v=20261016-load-fix 開啟。
+
+index.html 必須直接在 docs 裡。全部不到 100 個檔案，每個檔案低於 25 MiB。
+請保留 ocr、fonts 資料夾及全部新版 JS、BIN，不需要上傳 native 原始碼。
+
+更新：引擎改為 27 個小分段，顯示即時百分比並自動重試中斷的下載。啟動畫面版本應為 20261016-load-fix。
+圖片下方可拖動的浮動擷取面板；繁體、簡體、英文獨立辨識；支援只辨識選取區塊。

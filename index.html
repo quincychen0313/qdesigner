@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>qDesinger</title>
+  <meta name="qdesinger-build" content="20261016-load-fix">
+  <meta name="description" content="qDesinger 網頁影像編輯器：圖層、遮色片、筆刷、文字與 PSD 編輯。以 PhotoCraft 0.7.0 為基礎，內建可收合的 Actions 分類側欄。">
+  
+<script src="./ocr/tesseract.min.js" defer integrity="sha384-r1ru3tcf6FhnCFR4B7pIFG+BhFF9LlFtz/P1y4pblWn3AGs9y3lBx5SKLNf4+rED" crossorigin="anonymous"></script>
+<script type="module">
+const loading = document.getElementById('photocraft_loading');
+const status = loading.querySelector('p');
+const bar = document.getElementById('engine_progress');
+const progress = (text, detail) => {
+  status.textContent = text;
+  if (detail) { bar.max = detail.total; bar.value = detail.loaded; }
+  else bar.removeAttribute('value');
+};
+document.getElementById('reload_engine').onclick = () => {
+  const url = new URL(location.href);
+  url.searchParams.set('reload', Date.now());
+  location.replace(url.href);
+};
+try {
+  if (location.protocol === 'file:') throw new Error('請使用 HTTPS 網址開啟網站，勿直接雙擊 HTML。');
+  progress('正在載入啟動元件…');
+  const [bindings, actions, pdf, loader] = await Promise.all([
+    import('./photocraft-web-fe0f47ebfab7820f.js'),
+    import('./builtin-actions.mjs'),
+    import('./action-pdf.mjs'),
+    import('./engine-loader-7f20edc6dbf7.mjs')
+  ]);
+  let noticeTimer;
+  function notify(message, error = false) {
+    const notice = document.getElementById('actions_notice');
+    notice.querySelector('span').textContent = message;
+    notice.hidden = false;
+    notice.dataset.error = String(error);
+    clearTimeout(noticeTimer);
+    if (!error) noticeTimer = setTimeout(() => {notice.hidden = true;}, 12000);
+  }
+  document.querySelector('#actions_notice button').onclick = () => {document.getElementById('actions_notice').hidden = true;};
+  pdf.installPDFExport(notify);
+  try { actions.revealActionsOnce(); actions.dockActionsColumnOnce(); }
+  catch (error) { console.warn('Actions panel preference:', error); }
+  const bytes = await loader.loadEngine({"parts": [{"file": "photocraft-web-fe0f47ebfab7820f.chunk01.bin", "size": 1048576, "sha256": "2935ae42ad40c0522f093fbc8d8a5b0e381f25acdced6ca42823345be93840c5"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk02.bin", "size": 1048576, "sha256": "eab23389d86576081145b525209764df5c4eee1c463e6c521afd49462c2ee6bd"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk03.bin", "size": 1048576, "sha256": "641be856644ad719feda344f923026e476f611f88e7c1468b7ec7e180291ddac"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk04.bin", "size": 1048576, "sha256": "6deb0facd39bc62df2e7c628401d43644080ae54263fbd645200ee038f8f1370"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk05.bin", "size": 1048576, "sha256": "62801bd038962594709bdda017d58d882456f7643d11f749f80ff2570a7ff2e4"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk06.bin", "size": 1048576, "sha256": "a96fe8db02b17a628d67703b164b382fb339f4431df9a7e2d70cf5ff6c86857f"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk07.bin", "size": 1048576, "sha256": "9a764b8a537a79e929048351e0b17ae172c1851b44b307bb15aeacea6f3f52b6"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk08.bin", "size": 1048576, "sha256": "6deab77825b9e8cd3201a567b9c76d7cec5518c4f259920b5a5417699758b3ea"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk09.bin", "size": 1048576, "sha256": "42b3fa7623289e184921167c726e2427a83e7118f5eb7919272e45604a3c065e"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk10.bin", "size": 1048576, "sha256": "dc817e04a24af73b019bb732ff54012fe32be43560f63a361d8127b5aeda7e5f"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk11.bin", "size": 1048576, "sha256": "4504335a66a30c02fb6d18e78ec1ca709245813580a1342746905ff0ba75c0b2"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk12.bin", "size": 1048576, "sha256": "db8728050c35eb1f02f6f881366ef2d691f44eb50304edee57f7609a5beff076"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk13.bin", "size": 1048576, "sha256": "699200901326d632ee963f0c19b803eecc3c7972fdf096e2b3b234b68734f6d1"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk14.bin", "size": 1048576, "sha256": "5309445ab0093da0894b7ec7ae531d5fc149dcf93f99de2f8fbd8162e6c033c4"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk15.bin", "size": 1048576, "sha256": "ac18255f490582c32ea0ba84d660afb5e01486a1071f2afc85b1e799225d3296"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk16.bin", "size": 1048576, "sha256": "d80aa796863ad65cf0271d55c74c22ce96bc92c929bced3b40758a3dd9068941"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk17.bin", "size": 1048576, "sha256": "147b634a475f8209093b6d24e93393f49746424cd833fe381ba1b547e3b86e38"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk18.bin", "size": 1048576, "sha256": "e69a809cdc760553c87013188fdccbf89017e928f11cb504e940c31e228f2142"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk19.bin", "size": 1048576, "sha256": "96c412531bbccf0db546d49221248382e64bd3275c935475e6f6f76920865d92"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk20.bin", "size": 1048576, "sha256": "4641da32cab73b4932046d0acb1bf32ac6e7991f517af193442a016014008572"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk21.bin", "size": 1048576, "sha256": "4ce615185d551a52bc018b225133427e5079a7f72a9ca06df2c1cad5fb7d2472"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk22.bin", "size": 1048576, "sha256": "0b6d1e71d1205358a7ffe368294179bee862823f2a8f12084c0a24e03fc0db88"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk23.bin", "size": 1048576, "sha256": "a2ad6b2a13a3ed7cbe807ebb52a4604d7e2f96046817cd3804a668c25bc8c2c5"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk24.bin", "size": 1048576, "sha256": "6a1167cc81aef31fc6a5773fa83efaf49e94db63d684cc3d8df7a6d2d9d2febc"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk25.bin", "size": 1048576, "sha256": "5ac978917e2e7fb31648dfce1738e2cc15a2e1f444211f816ececb6457bb9f0a"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk26.bin", "size": 1048576, "sha256": "8ae5a7bea0207d606ed5a5549a77b90274c55e73bd4f1bad4846011ac9b920b5"}, {"file": "photocraft-web-fe0f47ebfab7820f.chunk27.bin", "size": 554773, "sha256": "0e615916131ab1e351a43e3db56f2bbc60b94621e7ada61c61ba2be51eda69ec"}], "size": 27817749, "sha256": "fe0f47ebfab7820ffa6b75692b0988c3fab4275dc85638a670a99f23e1c91b95"}, progress);
+  progress('正在啟動 qDesinger…');
+  const wasm = await bindings.default({module_or_path: bytes});
+  window.wasmBindings = bindings;
+  dispatchEvent(new CustomEvent('TrunkApplicationStarted', {detail: {wasm}}));
+} catch (error) {
+  console.error('qDesinger startup:', error);
+  if (loading.isConnected) {
+    progress('qDesinger 載入失敗');
+    const detail = document.createElement('p');
+    detail.id = 'startup_error';
+    detail.textContent = error?.message || String(error);
+    loading.append(detail);
+    document.getElementById('photocraft_stalled').style.visibility = 'visible';
+  }
+}
+</script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    #photocraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #photocraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 0 16px; text-align: center; color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+    #engine_progress { width:min(320px,80vw); height:8px; margin:12px 0; accent-color:#6aa9f5; }
+    #reload_engine { pointer-events:auto; border:1px solid #777; border-radius:6px; background:#363636; color:#eee; padding:8px 18px; cursor:pointer; margin:8px; }
+    #loading_version { font-size:11px; color:#999; margin:8px; }
+    #startup_error { color: #ffb4a9; overflow-wrap:anywhere; }
+    #photocraft_loading p { margin: 0 0 8px; max-width: 420px; line-height: 1.5; }
+    #photocraft_loading a { color: #e0e0e0; pointer-events: auto; }
+    /* The app removes this element once it runs. If the WebAssembly never downloads or doesn't match
+       this page, no Rust runs to say so, so the page itself shows what to do after a while. */
+    #photocraft_stalled { color: #8c8c8c; visibility: hidden; animation: photocraft-stalled 0s 20s forwards; }
+    @keyframes photocraft-stalled { to { visibility: visible; } }
+    #actions_notice {position:fixed;z-index:10;left:50%;bottom:30px;transform:translateX(-50%);max-width:min(680px,85vw);padding:12px 38px 12px 16px;border:1px solid #666;border-radius:8px;background:#303030;color:#eee;font:13px/1.6 system-ui;box-shadow:0 8px 28px #0006;}
+    #actions_notice[hidden] {display:none;}
+    #actions_notice[data-error="true"] {border-color:#dc9773;}
+    #actions_notice button {position:absolute;right:8px;top:8px;background:transparent;border:0;color:#eee;cursor:pointer;font-size:20px;}
+  </style>
+<link rel="modulepreload" href="./photocraft-web-fe0f47ebfab7820f.js" crossorigin="anonymous" integrity="sha384-h41QWuvWW/d8rb2an8UpVBvcDcq8PHYERydeJscezjxsdU33zdKtVeOzJDOBw0/L"></head>
+<body>
+  <canvas id="photocraft_canvas"></canvas>
+  <aside id="actions_notice" role="status" aria-live="polite" hidden><span></span><button type="button" aria-label="關閉提示">×</button></aside>
+  <div id="photocraft_loading">
+    <p role="status" aria-live="polite">正在載入 qDesinger&hellip;</p>
+    <progress id="engine_progress" aria-label="編輯引擎下載進度"></progress>
+    <button id="reload_engine" type="button">重新下載</button>
+    <small id="loading_version">版本：20261016-load-fix</small>
+    <p id="photocraft_stalled">載入時間較長。首次開啟需要下載編輯引擎，請稍候。若持續無法開啟，可<a href="">重新載入</a>，或切換<a href="?webgl">相容模式</a>。</p>
+  </div>
+</body>
+</html>
