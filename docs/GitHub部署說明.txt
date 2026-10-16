@@ -1,0 +1,11 @@
+qDesinger GitHub 完整網頁版 — 20261016-grab-toolbar
+
+1. 解壓縮本 ZIP。
+2. 將全部內容覆蓋上傳至 quincychen0313/qdesigner 的 docs 資料夾；不要把 ZIP 本身當網頁檔上傳。
+3. GitHub Pages 設為正確分支的 /docs，部署完成後重新整理。
+
+index.html 必須直接在 docs 裡。全部不到 100 個檔案；每個檔案低於 25 MiB。
+請保留 ocr、fonts 資料夾的結構，及所有新版 JS、BIN；不需要上傳 native 原始碼。
+
+新增入口：開啟圖片後，左側最上方的擷取工具圖示。
+短按開啟目前功能；長按約 0.35 秒可在 Grab Text、Magic Grab 間選擇。
