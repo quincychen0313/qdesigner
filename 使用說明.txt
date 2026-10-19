@@ -1,3 +1,13 @@
+20261019-save-formats：多格式另存新檔
+
+檔案 → 另存新檔（Mac：Command+Shift+S；Windows：Ctrl+Shift+S）。
+輸入檔名，選擇 PNG、JPEG、WebP、TIFF、BMP、GIF 或 TGA，再按「儲存」。
+JPEG 可調整品質，透明區域會填成白色；PNG 可保留透明背景。WebP 可選擇無損或調整品質。GIF 是最多 256 色的靜態圖片。
+儲存圖片副本時，原始文件與圖層仍可繼續編輯。要保留完整可編輯文件，請選 qDesinger (.pcraft)；也保留 PSD、PSB 和 OpenRaster 選項。
+下載位置由瀏覽器設定決定。繁體中文與英文介面皆可使用。
+
+以下為之前功能的說明：
+
 浮動面板預設收合：開啟圖片或重新開啟擷取工具時，只顯示標題列。點左側箭頭展開設定與說明，再點一次即可收合。切換 Grab Text／Magic Grab 時會維持展開。
 
 目前版本：20261016-collapsed
